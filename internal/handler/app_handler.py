@@ -1,22 +1,25 @@
 import os
-from flask import request
+from flask import request, jsonify
 from openai import OpenAI
 
 from internal.schema.app_schema import CompletionReq
+from pkg.response import success_json, validate_error_json
+from internal.exception import FailException
 
 
 class AppHandler:
     """应用控制器"""
 
     def ping(self):
-        return {"ping": "pong"}
+        raise FailException("异常测试")
+        # return {"ping": "pong"}
 
     def completion(self):
         """聊天接口"""
         # 1. 获取输入，POST
         req = CompletionReq()
         if not req.validate():
-            return req.errors
+            return validate_error_json(req.errors)
 
         print(request.json)
         # 2. 构建DEEPSEEK客户端，调用接口
@@ -37,4 +40,5 @@ class AppHandler:
             stream=False,
         )
         content = response.choices[0].message.content
-        return content
+
+        return success_json({"content": content})
