@@ -1,17 +1,28 @@
 import os
 from flask import Flask, jsonify
+from flask_migrate import Migrate
+
 from internal.exception.exception import CustomException
 from internal.router import Router
 from config import Config
+
 from pkg.response.http_code import HttpCode
-from flask_sqlalchemy import SQLAlchemy
+from pkg.sqlalchemy import SQLAlchemy
 from internal.model.app import App
 
 
 class Http(Flask):
     """http服务"""
 
-    def __init__(self, *args, conf: Config, db: SQLAlchemy, router: Router, **kwargs):
+    def __init__(
+        self,
+        *args,
+        conf: Config,
+        db: SQLAlchemy,
+        migrate: Migrate,
+        router: Router,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
         # 配置
@@ -21,9 +32,10 @@ class Http(Flask):
 
         # 注册数据库
         db.init_app(self)
-        with self.app_context():  # 创建上下文
-            _ = App()
-            db.create_all()
+        migrate.init_app(self, db, directory="internal/migration")
+        # with self.app_context():  # 创建上下文
+        #     _ = App()
+        #     db.create_all()
 
         # 注册路由
         router.register_router(self)

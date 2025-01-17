@@ -25,5 +25,19 @@ class Router:
             "/app", methods=["POST"], view_func=self.app_handler.create_app
         )
 
+        blueprint.add_url_rule(
+            "/app/<uuid:id>", methods=["GET"], view_func=self.app_handler.get_app
+        )
+
+        blueprint.add_url_rule(
+            "/app/<uuid:id>", methods=["POST"], view_func=self.app_handler.update_app
+        )
+
+        blueprint.add_url_rule(
+            "/app/<uuid:id>/delete",
+            methods=["POST"],
+            view_func=self.app_handler.delete_app,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)

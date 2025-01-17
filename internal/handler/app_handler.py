@@ -1,11 +1,17 @@
 import os
+import uuid
 from dataclasses import dataclass
 from flask import request, jsonify
 from injector import inject
 from openai import OpenAI
 
 from internal.schema.app_schema import CompletionReq
-from pkg.response import success_json, validate_error_json, success_message
+from pkg.response import (
+    success_json,
+    validate_error_json,
+    success_message,
+    fail_message,
+)
 from internal.exception import FailException
 from internal.service import AppService
 
@@ -54,3 +60,21 @@ class AppHandler:
         content = response.choices[0].message.content
 
         return success_json({"content": content})
+
+    def get_app(self, id: uuid.UUID):
+        """获取应用"""
+        app = self.app_service.get_app(id)
+        return success_message(f"获取应用成功，应用ID为{app.id}, 应用名称为{app.name}")
+
+    def update_app(self, id: uuid.UUID):
+        """更新应用"""
+        app = self.app_service.update_app(id)
+        return success_message(f"更新应用成功，应用ID为{app.id}, 应用名称为{app.name}")
+
+    def delete_app(self, id: uuid.UUID):
+        """删除应用"""
+        try:
+            app = self.app_service.delete_app(id)
+        except Exception as e:
+            return fail_message(f"删除应用失败，应用ID为{id}, 错误信息为{str(e)}")
+        return success_message(f"删除应用成功，应用ID为{app.id}, 应用名称为{app.name}")
