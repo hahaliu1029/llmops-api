@@ -47,26 +47,26 @@ def message(code: HttpCode = None, message: str = ""):
     return json(Response(code=code, message=message, data={}))
 
 
-def success_message(message: str = ""):
+def success_message(msg: str = ""):
     """成功消息"""
-    return message(code=HttpCode.SUCCESS, message=message)
+    return message(code=HttpCode.SUCCESS, message=msg)
 
 
-def fail_message(message: str = ""):
+def fail_message(msg: str = ""):
     """失败消息"""
-    return message(code=HttpCode.FAIL, message=message)
+    return message(code=HttpCode.FAIL, message=msg)
 
 
-def not_found_message(message: str = ""):
+def not_found_message(msg: str = ""):
     """未找到"""
-    return message(code=HttpCode.NOT_FOUND, message=message)
+    return message(code=HttpCode.NOT_FOUND, message=msg)
 
 
-def unauthorized_message(message: str = ""):
+def unauthorized_message(msg: str = ""):
     """未授权"""
-    return message(code=HttpCode.UNAUTHORIZED, message=message)
+    return message(code=HttpCode.UNAUTHORIZED, message=msg)
 
 
-def forbidden_message(message: str = ""):
+def forbidden_message(msg: str = ""):
     """禁止"""
-    return message(code=HttpCode.FORBIDDEN, message=message)
+    return message(code=HttpCode.FORBIDDEN, message=msg)

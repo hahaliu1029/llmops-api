@@ -4,18 +4,26 @@ from internal.exception.exception import CustomException
 from internal.router import Router
 from config import Config
 from pkg.response.http_code import HttpCode
+from flask_sqlalchemy import SQLAlchemy
+from internal.model.app import App
 
 
 class Http(Flask):
     """http服务"""
 
-    def __init__(self, *args, conf: Config, router: Router, **kwargs):
+    def __init__(self, *args, conf: Config, db: SQLAlchemy, router: Router, **kwargs):
         super().__init__(*args, **kwargs)
 
         # 配置
         self.config.from_object(conf)
 
         self.register_error_handler(Exception, self._register_error_handler)
+
+        # 注册数据库
+        db.init_app(self)
+        with self.app_context():  # 创建上下文
+            _ = App()
+            db.create_all()
 
         # 注册路由
         router.register_router(self)

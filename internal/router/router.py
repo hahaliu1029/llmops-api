@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from flask import Flask, Blueprint
 from injector import inject
-from internal.handler import AppHandler, app_handler
+from internal.handler import AppHandler
 
 
 @inject
@@ -9,7 +9,7 @@ from internal.handler import AppHandler, app_handler
 class Router:
     """路由"""
 
-    app_handler = AppHandler()
+    app_handler: AppHandler
 
     def register_router(self, app: Flask):
         """注册路由"""
@@ -20,6 +20,9 @@ class Router:
         blueprint.add_url_rule("/ping", view_func=self.app_handler.ping)
         blueprint.add_url_rule(
             "/app/completion", methods=["POST"], view_func=self.app_handler.completion
+        )
+        blueprint.add_url_rule(
+            "/app", methods=["POST"], view_func=self.app_handler.create_app
         )
 
         # 3. 注册蓝图

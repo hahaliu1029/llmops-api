@@ -1,14 +1,26 @@
 import os
+from dataclasses import dataclass
 from flask import request, jsonify
+from injector import inject
 from openai import OpenAI
 
 from internal.schema.app_schema import CompletionReq
-from pkg.response import success_json, validate_error_json
+from pkg.response import success_json, validate_error_json, success_message
 from internal.exception import FailException
+from internal.service import AppService
 
 
+@inject
+@dataclass
 class AppHandler:
     """应用控制器"""
+
+    app_service: AppService
+
+    def create_app(self):
+        """创建应用"""
+        app = self.app_service.create_app()
+        return success_message(f"创建应用成功，应用ID为{app.id}")
 
     def ping(self):
         raise FailException("异常测试")
