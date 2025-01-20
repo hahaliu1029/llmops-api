@@ -1,3 +1,4 @@
+from itertools import chain
 import os
 import uuid
 from dataclasses import dataclass
@@ -55,13 +56,15 @@ class AppHandler:
             openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
         )
 
-        # 3. 得到结果，返回
-
-        ai_message = llm.invoke(prompt.invoke({"query": request.json["query"]}))
-
         parser = StrOutputParser()
 
-        content = parser.invoke(ai_message)
+        # 3. 得到结果，返回
+
+        chain = prompt | llm | parser
+
+        # ai_message = llm.invoke(prompt.invoke({"query": request.json["query"]}))
+
+        # content = parser.invoke(ai_message)
 
         # response = client.chat.completions.create(
         #     model="deepseek-chat",
@@ -75,6 +78,8 @@ class AppHandler:
         #     stream=False,
         # )
         # content = response.choices[0].message.content
+
+        content = chain.invoke({"query": request.json["query"]})
 
         return success_json({"content": content})
 
