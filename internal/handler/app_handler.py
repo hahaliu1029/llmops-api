@@ -14,6 +14,9 @@ from pkg.response import (
 )
 from internal.exception import FailException
 from internal.service import AppService
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
 
 
 @inject
@@ -39,25 +42,39 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        print(request.json)
+        prompt = ChatPromptTemplate.from_template("{query}")
+
         # 2. 构建DEEPSEEK客户端，调用接口
-        client = OpenAI(
-            api_key=os.getenv("DEEPSEEK_API_KEY"),
-            base_url=os.getenv("DEEPSEEK_API_BASE"),
-        )
-        # 3. 得到结果，返回
-        response = client.chat.completions.create(
+        # client = OpenAI(
+        #     api_key=os.getenv("DEEPSEEK_API_KEY"),
+        #     base_url=os.getenv("DEEPSEEK_API_BASE"),
+        # )
+        llm = ChatOpenAI(
             model="deepseek-chat",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "你是一个聊天机器人，请根据用户输入回复信息",
-                },
-                {"role": "user", "content": request.json["query"]},
-            ],
-            stream=False,
+            openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
+            openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
         )
-        content = response.choices[0].message.content
+
+        # 3. 得到结果，返回
+
+        ai_message = llm.invoke(prompt.invoke({"query": request.json["query"]}))
+
+        parser = StrOutputParser()
+
+        content = parser.invoke(ai_message)
+
+        # response = client.chat.completions.create(
+        #     model="deepseek-chat",
+        #     messages=[
+        #         {
+        #             "role": "system",
+        #             "content": "你是一个聊天机器人，请根据用户输入回复信息",
+        #         },
+        #         {"role": "user", "content": request.json["query"]},
+        #     ],
+        #     stream=False,
+        # )
+        # content = response.choices[0].message.content
 
         return success_json({"content": content})
 
