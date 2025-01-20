@@ -36,7 +36,7 @@ class AppHandler:
         raise FailException("异常测试")
         # return {"ping": "pong"}
 
-    def completion(self):
+    def debug(self, app_id: uuid.UUID):
         """聊天接口"""
         # 1. 获取输入，POST
         req = CompletionReq()
