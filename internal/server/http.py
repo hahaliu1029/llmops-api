@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify
+from flask_cors import CORS
 from flask_migrate import Migrate
 
 from internal.exception.exception import CustomException
@@ -25,6 +26,8 @@ class Http(Flask):
     ):
         super().__init__(*args, **kwargs)
 
+        print("Http init")
+
         # 配置
         self.config.from_object(conf)
 
@@ -38,6 +41,11 @@ class Http(Flask):
         #     db.create_all()
 
         # 注册路由
+        CORS(
+            self,
+            resources={r"/*": {"origins": "*"}},
+            supports_credentials=True,
+        )
         router.register_router(self)
 
     def _register_error_handler(self, error: Exception):

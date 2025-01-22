@@ -2,7 +2,6 @@ import dotenv
 from injector import Injector
 from flask_migrate import Migrate
 
-from internal.handler.app_handler import AppHandler
 from internal.server import Http
 from internal.router import Router
 from config import Config
