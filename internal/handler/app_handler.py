@@ -1,4 +1,4 @@
-from itertools import chain
+from operator import itemgetter
 import os
 import uuid
 from dataclasses import dataclass
@@ -15,9 +15,14 @@ from pkg.response import (
 )
 from internal.exception import FailException
 from internal.service import AppService
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain.memory import (
+    ConversationBufferWindowMemory,
+)
+from langchain_community.chat_message_histories import FileChatMessageHistory
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 
 @inject
@@ -43,43 +48,82 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        prompt = ChatPromptTemplate.from_template("{query}")
+        # 创建prompt与记忆
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "你是一个聊天机器人，请根据用户输入回复信息"),
+                MessagesPlaceholder("history"),
+                ("human", "{query}"),
+            ]
+        )
+        memory = ConversationBufferWindowMemory(
+            k=3,
+            return_messages=True,
+            input_key="query",
+            output_key="output",
+            chat_memory=FileChatMessageHistory("./storage/memory/chat_memory.txt"),
+        )
+
+        llm = ChatOpenAI(
+            # model="gpt-3.5-turbo-16k",
+            # openai_api_key=os.getenv("OPENAI_API_KEY"),
+            # openai_api_base=os.getenv("OPENAI_API_BASE"),
+            model="deepseek-chat",
+            openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
+            openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
+        )
+
+        # prompt = ChatPromptTemplate.from_template("{query}")
+
+        chain = (
+            RunnablePassthrough.assign(
+                history=RunnableLambda(memory.load_memory_variables)
+                | itemgetter("history")
+            )
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
+
+        chain_input = {"query": request.json["query"]}
+        content = chain.invoke(chain_input)
+        memory.save_context(chain_input, {"output": content})
 
         # 2. 构建DEEPSEEK客户端，调用接口
         # client = OpenAI(
         #     api_key=os.getenv("DEEPSEEK_API_KEY"),
         #     base_url=os.getenv("DEEPSEEK_API_BASE"),
         # )
-        llm = ChatOpenAI(
-            model="deepseek-chat",
-            openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
-            openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
-        )
-
-        parser = StrOutputParser()
-
-        # 3. 得到结果，返回
-
-        chain = prompt | llm | parser
-
-        # ai_message = llm.invoke(prompt.invoke({"query": request.json["query"]}))
-
-        # content = parser.invoke(ai_message)
-
-        # response = client.chat.completions.create(
+        # llm = ChatOpenAI(
         #     model="deepseek-chat",
-        #     messages=[
-        #         {
-        #             "role": "system",
-        #             "content": "你是一个聊天机器人，请根据用户输入回复信息",
-        #         },
-        #         {"role": "user", "content": request.json["query"]},
-        #     ],
-        #     stream=False,
+        #     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
+        #     openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
         # )
-        # content = response.choices[0].message.content
 
-        content = chain.invoke({"query": request.json["query"]})
+        # parser = StrOutputParser()
+
+        # # 3. 得到结果，返回
+
+        # chain = prompt | llm | parser
+
+        # # ai_message = llm.invoke(prompt.invoke({"query": request.json["query"]}))
+
+        # # content = parser.invoke(ai_message)
+
+        # # response = client.chat.completions.create(
+        # #     model="deepseek-chat",
+        # #     messages=[
+        # #         {
+        # #             "role": "system",
+        # #             "content": "你是一个聊天机器人，请根据用户输入回复信息",
+        # #         },
+        # #         {"role": "user", "content": request.json["query"]},
+        # #     ],
+        # #     stream=False,
+        # # )
+        # # content = response.choices[0].message.content
+
+        # content = chain.invoke({"query": request.json["query"]})
 
         return success_json({"content": content})
 
