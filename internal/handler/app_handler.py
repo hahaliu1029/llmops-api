@@ -1,10 +1,11 @@
 from operator import itemgetter
 import os
+from typing import Any, Dict
+from unittest.mock import Base
 import uuid
 from dataclasses import dataclass
-from flask import request, jsonify
+from flask import request
 from injector import inject
-from openai import OpenAI
 
 from internal.schema.app_schema import CompletionReq
 from pkg.response import (
@@ -22,7 +23,9 @@ from langchain.memory import (
     ConversationBufferWindowMemory,
 )
 from langchain_community.chat_message_histories import FileChatMessageHistory
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda, RunnableConfig
+from langchain_core.memory import BaseMemory
+from langchain_core.tracers.schemas import Run
 
 
 @inject
@@ -40,6 +43,33 @@ class AppHandler:
     def ping(self):
         raise FailException("异常测试")
         # return {"ping": "pong"}
+
+    @classmethod
+    def _load_memory_variables(
+        cls, input: Dict[str, Any], config: RunnableConfig
+    ) -> Dict[str, Any]:
+        """加载记忆变量"""
+        # 从config中获取configurable
+        configurable = config.get("configurable", {})
+        configurable_memory = configurable.get("memory", None)
+        if configurable_memory is not None and isinstance(
+            configurable_memory, BaseMemory
+        ):
+            return configurable_memory.load_memory_variables(input)
+        return {"history": []}
+
+    @classmethod
+    def _save_context(cls, run_obj: Run, config: RunnableConfig) -> None:
+        """保存上下文"""
+        # 从config中获取configurable
+        configurable = config.get("configurable", {})
+        configurable_memory = configurable.get("memory", None)
+        print(run_obj.inputs)
+        print(run_obj.outputs)
+        if configurable_memory is not None and isinstance(
+            configurable_memory, BaseMemory
+        ):
+            configurable_memory.save_context(run_obj.inputs, run_obj.outputs)
 
     def debug(self, app_id: uuid.UUID):
         """聊天接口"""
@@ -77,17 +107,24 @@ class AppHandler:
 
         chain = (
             RunnablePassthrough.assign(
-                history=RunnableLambda(memory.load_memory_variables)
+                history=RunnableLambda(self._load_memory_variables)
                 | itemgetter("history")
             )
             | prompt
             | llm
             | StrOutputParser()
-        )
+        ).with_listeners(on_end=self._save_context)
 
         chain_input = {"query": request.json["query"]}
-        content = chain.invoke(chain_input)
-        memory.save_context(chain_input, {"output": content})
+        content = chain.invoke(
+            chain_input,
+            config={
+                "configurable": {
+                    "memory": memory,
+                }
+            },
+        )
+        # memory.save_context(chain_input, {"output": content})
 
         # 2. 构建DEEPSEEK客户端，调用接口
         # client = OpenAI(
