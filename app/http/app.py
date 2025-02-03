@@ -8,7 +8,7 @@ from config import Config
 from pkg.sqlalchemy import SQLAlchemy
 from .module import ExtentionModule
 
-dotenv.load_dotenv()  # 加载环境变量
+dotenv.load_dotenv(override=True)  # 加载环境变量
 
 conf = Config()
 

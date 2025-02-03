@@ -61,6 +61,7 @@ while True:
     chain_input = {"query": query}
 
     response = chain.stream(chain_input)
+    print(response)  # 检查返回的数据是否为空
 
     print("Bot: ", flush=True, end="")
     output = ""

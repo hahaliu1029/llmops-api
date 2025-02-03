@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(override=True)
 
 # Create a new ChatPromptTemplate object
 prompt = ChatPromptTemplate.from_messages(
@@ -23,11 +23,20 @@ memory = ConversationBufferWindowMemory(k=2, return_messages=True, input_key="qu
 
 # Create a new ChatOpenAI object
 # memory_variable = memory.load_memory_variables({})
+# llm = ChatOpenAI(
+#     model="deepseek-chat",
+#     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
+#     openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
+# )
+
 llm = ChatOpenAI(
-    model="deepseek-chat",
-    openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
-    openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
+    model="gpt-3.5-turbo",
+    openai_api_key=os.getenv("OPENAI_API_KEY"),
+    openai_api_base=os.getenv("OPENAI_API_BASE"),
 )
+
+print(os.getenv("OPENAI_API_KEY"))
+print(os.getenv("OPENAI_API_BASE"))
 
 # Build the chain
 chain = (

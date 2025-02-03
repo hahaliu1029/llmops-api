@@ -15,7 +15,7 @@ from pkg.response import (
     fail_message,
 )
 from internal.exception import FailException
-from internal.service import AppService
+from internal.service import AppService, VectorDatabaseService
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
@@ -34,6 +34,7 @@ class AppHandler:
     """应用控制器"""
 
     app_service: AppService
+    vector_database_service: VectorDatabaseService
 
     def create_app(self):
         """创建应用"""
@@ -79,9 +80,10 @@ class AppHandler:
             return validate_error_json(req.errors)
 
         # 创建prompt与记忆
+        system_prompt = "你是一个聊天机器人，能根据对应的上下文和历史对话信息回复用户问题。\n\n<context>{context}</context>"
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "你是一个聊天机器人，请根据用户输入回复信息"),
+                ("system", system_prompt),
                 MessagesPlaceholder("history"),
                 ("human", "{query}"),
             ]
@@ -105,10 +107,15 @@ class AppHandler:
 
         # prompt = ChatPromptTemplate.from_template("{query}")
 
+        retriever = (
+            self.vector_database_service.get_retriever()
+            | self.vector_database_service.combine_documents
+        )
         chain = (
             RunnablePassthrough.assign(
                 history=RunnableLambda(self._load_memory_variables)
-                | itemgetter("history")
+                | itemgetter("history"),
+                context=itemgetter("query") | retriever,
             )
             | prompt
             | llm
