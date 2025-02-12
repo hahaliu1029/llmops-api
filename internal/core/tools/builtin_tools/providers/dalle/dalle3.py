@@ -13,6 +13,6 @@ class Dalle3ArgsSchema(BaseModel):
 def dalle3(**kwargs) -> BaseTool:
     """返回dalle3绘图的工具"""
     return OpenAIDALLEImageGenerationTool(
-        api_wrapper=DallEAPIWrapper(**kwargs),
+        api_wrapper=DallEAPIWrapper(model="dall-e-3", **kwargs),
         args_schema=Dalle3ArgsSchema,
     )
