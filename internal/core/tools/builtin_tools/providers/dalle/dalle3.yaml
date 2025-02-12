@@ -1,0 +1,24 @@
+name: dalle3
+label: DALL-E 3绘图工具
+description: 一个基于 OpenAI DALL-E 3 的绘图工具
+params: 
+  - name: size
+    label: 图片尺寸
+    type: select
+    required: true
+    options:
+      - label: "竖屏 1024x1792"
+        value: 1024x1792
+      - label: "横屏 1792x1024"
+        value: 1792x1024
+      - label: "方形 1024x1024"
+        value: 1024x1024
+  - name: style
+    label: 图片风格
+    type: select
+    required: true
+    options:
+      - value: vivid
+        label: "生动"
+      - value: natural
+        label: "自然"

@@ -17,7 +17,7 @@ class Router:
         blueprint = Blueprint("llmops", __name__, url_prefix="/")
 
         # 2. 将url与对应控制器方法绑定
-        # blueprint.add_url_rule("/ping", view_func=self.app_handler.ping)
+        blueprint.add_url_rule("/ping", view_func=self.app_handler.ping)
         blueprint.add_url_rule(
             "/apps/<uuid:app_id>/debug",
             methods=["POST"],

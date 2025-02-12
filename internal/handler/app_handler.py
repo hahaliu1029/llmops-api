@@ -26,6 +26,7 @@ from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda, RunnableConfig
 from langchain_core.memory import BaseMemory
 from langchain_core.tracers.schemas import Run
+from internal.core.tools.builtin_tools.providers import ProviderFactory
 
 
 @inject
@@ -35,6 +36,7 @@ class AppHandler:
 
     app_service: AppService
     vector_database_service: VectorDatabaseService
+    provider_factory: ProviderFactory
 
     def create_app(self):
         """创建应用"""
@@ -42,6 +44,9 @@ class AppHandler:
         return success_message(f"创建应用成功，应用ID为{app.id}")
 
     def ping(self):
+        google = self.provider_factory.get_provider("google")
+        google_serper_entity = google.get_tool_entity("google_serper")
+        print(google_serper_entity)
         raise FailException("异常测试")
         # return {"ping": "pong"}
 
