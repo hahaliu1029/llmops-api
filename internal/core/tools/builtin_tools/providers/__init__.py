@@ -1,5 +1,5 @@
-from .provider_factory import ProviderFactory
+from .builtin_provider_manager import BuiltInProviderManager
 
 __all__ = [
-    "ProviderFactory",
+    "BuiltInProviderManager",
 ]

@@ -1,8 +1,8 @@
 from injector import Binder, Module
 from flask_migrate import Migrate
 
-from internal.extention.database_extension import db
-from internal.extention.migrate_extention import migrate
+from internal.extension.database_extension import db
+from internal.extension.migrate_extention import migrate
 from pkg.sqlalchemy import SQLAlchemy
 
 

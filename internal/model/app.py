@@ -1,5 +1,3 @@
-import uuid
-from datetime import datetime
 from sqlalchemy import (
     Column,
     UUID,
@@ -10,7 +8,7 @@ from sqlalchemy import (
     Index,
     text,
 )
-from internal.extention.database_extension import db
+from internal.extension.database_extension import db
 
 
 class App(db.Model):

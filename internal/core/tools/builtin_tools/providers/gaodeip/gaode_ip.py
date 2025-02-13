@@ -5,6 +5,7 @@ from typing import Any, Type
 import requests
 from pydantic import BaseModel, Field
 from langchain_core.tools import BaseTool
+from internal.lib.helper import add_attribute
 
 
 class GaodeIPLookupArgsSchema(BaseModel):
@@ -50,6 +51,7 @@ class GaodeIPLookupTool(BaseTool):
             return f"获取IP {ip} 归属地信息失败，错误信息: {str(e)}"
 
 
+@add_attribute("args_schema", GaodeIPLookupArgsSchema)
 def gaode_ip() -> BaseTool:
     """获取一个高德IP查询工具"""
     return GaodeIPLookupTool()
