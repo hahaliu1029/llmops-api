@@ -70,5 +70,11 @@ class Router:
             view_func=self.api_tool_handler.validate_openapi_schema,
         )
 
+        blueprint.add_url_rule(
+            "/api-tools",
+            methods=["POST"],
+            view_func=self.api_tool_handler.create_api_tool,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)
