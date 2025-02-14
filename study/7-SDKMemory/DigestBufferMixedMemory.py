@@ -1,6 +1,5 @@
 import os
 from typing import Any
-from click import prompt
 import dotenv
 from openai import OpenAI
 
