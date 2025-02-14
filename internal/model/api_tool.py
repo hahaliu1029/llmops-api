@@ -43,6 +43,11 @@ class ApiToolProvider(db.Model):
         DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)")
     )
 
+    @property
+    def tools(self) -> list["ApiTool"]:
+        """获取API工具提供者的API工具列表"""
+        return db.session.query(ApiTool).filter_by(provider_id=self.id).all()
+
 
 class ApiTool(db.Model):
     """API 工具表"""

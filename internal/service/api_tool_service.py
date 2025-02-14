@@ -6,9 +6,15 @@ from dataclasses import dataclass
 
 from internal.exception import ValidateErrorException, NotFoundException
 from internal.core.tools.api_tools.entities import OpenAPISchema
-from internal.schema.api_tool_schema import CreateApiToolReq
+from internal.schema.api_tool_schema import (
+    CreateApiToolReq,
+    GetApiToolProvidersWithPageReq,
+    UpdateApiToolProviderReq,
+)
 from pkg.sqlalchemy import SQLAlchemy
+from pkg.paginator import Paginator
 from internal.model import ApiToolProvider, ApiTool
+from sqlalchemy import desc
 
 
 @inject
@@ -17,6 +23,87 @@ class ApiToolService:
     """自定义API插件服务"""
 
     db: SQLAlchemy
+
+    def update_api_tool_provider(
+        self, provider_id: UUID, req: UpdateApiToolProviderReq
+    ) -> None:
+        """更新API工具提供者"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 先查找数据，检测是否存在，权限是否正确
+        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+
+        if not api_tool_provider or str(api_tool_provider.account_id) != account_id:
+            raise NotFoundException("API工具提供者不存在")
+
+        # 检验并提取openapi_schema对应的数据
+        openapi_schema = self.parse_openapi_schema(req.openapi_schema.data)
+
+        # 检测当前用户是否已经存在同名的工具提供者，如果是则抛出异常
+        check_api_tool_provider = (
+            self.db.session.query(ApiToolProvider)
+            .filter(
+                ApiToolProvider.account_id == account_id,
+                ApiToolProvider.name == req.name.data,
+                ApiToolProvider.id != provider_id,
+            )
+            .one_or_none()
+        )
+        if check_api_tool_provider:
+            raise ValidateErrorException(
+                f"当前用户已经存在名为{req.name.data}的API工具提供者"
+            )
+
+        # 开启数据库自动提交
+        with self.db.auto_commit():
+            # 先删除该工具提供者下的所有工具
+            self.db.session.query(ApiTool).filter(
+                ApiTool.provider_id == provider_id, ApiTool.account_id == account_id
+            ).delete()
+
+            # 更新API工具提供者
+            api_tool_provider.name = req.name.data
+            api_tool_provider.icon = req.icon.data
+            # api_tool_provider.description = openapi_schema.description
+            api_tool_provider.openapi_schema = req.openapi_schema.data
+            api_tool_provider.headers = req.headers.data
+
+            # 创建api工具并关联api_tool_provider
+            for path, path_item in openapi_schema.paths.items():
+                for method, method_item in path_item.items():
+                    api_tool = ApiTool(
+                        account_id=account_id,
+                        provider_id=api_tool_provider.id,
+                        name=method_item.get("operationId"),
+                        description=method_item.get("description"),
+                        url=f"{openapi_schema.server}{path}",
+                        method=method,
+                        parameters=method_item.get("parameters", []),
+                    )
+                    self.db.session.add(api_tool)
+
+    def get_api_tool_providers_with_page(
+        self, req: GetApiToolProvidersWithPageReq
+    ) -> tuple[list[Any], Paginator]:
+        """获取自定义API工具提供者列表信息，支持分页"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 构建分页查询器
+        paginator = Paginator(self.db, req)
+        # 构建筛选器
+        filters = [ApiToolProvider.account_id == account_id]
+        if req.search_word.data:
+            filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
+        # 执行分页并获取数据
+        api_tool_providers = paginator.paginate(
+            self.db.session.query(ApiToolProvider)
+            .filter(*filters)
+            .order_by(desc("created_at"))
+        )
+
+        return api_tool_providers, paginator
 
     def get_api_tool(self, provider_id: UUID, tool_name: str) -> ApiTool:
         """根据传递的provider_id和tool_name获取API工具"""

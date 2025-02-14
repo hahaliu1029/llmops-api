@@ -64,6 +64,12 @@ class Router:
         )
 
         # 自定义API插件模块
+
+        blueprint.add_url_rule(
+            "/api-tools",
+            view_func=self.api_tool_handler.get_api_tool_providers_with_page,
+        )
+
         blueprint.add_url_rule(
             "/api-tools/validate-openapi-schema",
             methods=["POST"],
@@ -74,6 +80,12 @@ class Router:
             "/api-tools",
             methods=["POST"],
             view_func=self.api_tool_handler.create_api_tool,
+        )
+
+        blueprint.add_url_rule(
+            "/api-tools/<uuid:provider_id>",
+            methods=["POST"],
+            view_func=self.api_tool_handler.update_api_tool_provider,
         )
 
         blueprint.add_url_rule(
