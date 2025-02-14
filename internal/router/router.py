@@ -79,7 +79,7 @@ class Router:
         blueprint.add_url_rule(
             "/api-tools",
             methods=["POST"],
-            view_func=self.api_tool_handler.create_api_tool,
+            view_func=self.api_tool_handler.create_api_tool_provider,
         )
 
         blueprint.add_url_rule(

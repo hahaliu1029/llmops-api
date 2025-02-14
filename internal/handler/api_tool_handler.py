@@ -43,7 +43,7 @@ class ApiToolHandler:
             PageModel(resp.dump(api_tool_providers), paginator=paginator)
         )
 
-    def create_api_tool(self):
+    def create_api_tool_provider(self):
         """创建自定义API工具"""
         # 提取请求数据并校验
         req = CreateApiToolReq()
