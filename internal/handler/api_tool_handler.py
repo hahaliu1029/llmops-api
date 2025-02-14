@@ -1,7 +1,13 @@
+from uuid import UUID
 from injector import inject
 from dataclasses import dataclass
-from internal.schema.api_tool_schema import ValidateOpenAPISchemaReq, CreateApiToolReq
-from pkg.response import validate_error_json, success_message
+from internal.schema.api_tool_schema import (
+    ValidateOpenAPISchemaReq,
+    CreateApiToolReq,
+    GetApiToolProviderResp,
+    GetApiToolResp,
+)
+from pkg.response import validate_error_json, success_message, success_json
 from internal.service import ApiToolService
 
 
@@ -24,6 +30,28 @@ class ApiToolHandler:
 
         # 返回成功信息
         return success_message("自定义API工具创建成功")
+
+    def get_api_tool(self, provider_id: UUID, tool_name: str):
+        """根据传递的provider_id和tool_name获取API工具"""
+        api_tool = self.api_tool_service.get_api_tool(provider_id, tool_name)
+
+        resp = GetApiToolResp()
+
+        return success_json(resp.dump(api_tool))
+
+    def get_api_tool_provider(self, provider_id: UUID):
+        """根据传递的provider_id获取API工具提供者"""
+        api_tool_provider = self.api_tool_service.get_api_tool_provider(provider_id)
+
+        resp = GetApiToolProviderResp()
+
+        return success_json(resp.dump(api_tool_provider))
+
+    def delete_api_tool_provider(self, provider_id: UUID):
+        """根据传递的provider_id删除API工具提供者"""
+        self.api_tool_service.delete_api_tool_provider(provider_id)
+
+        return success_message("API工具提供者删除成功")
 
     def validate_openapi_schema(self):
         """校验传递的openapi_schema字符串是否正确"""

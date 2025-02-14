@@ -1,7 +1,9 @@
+from marshmallow import Schema, fields, pre_dump
 from flask_wtf import FlaskForm
 from wtforms import StringField, ValidationError
 from wtforms.validators import DataRequired, Length, URL
 from .schema import ListField
+from internal.model import ApiToolProvider, ApiTool
 
 
 class ValidateOpenAPISchemaReq(FlaskForm):
@@ -52,3 +54,58 @@ class CreateApiToolReq(FlaskForm):
                 header["value"], str
             ):
                 raise ValueError("headers字段元素key和value必须是字符串类型")
+
+
+class GetApiToolProviderResp(Schema):
+    """获取API工具提供者响应"""
+
+    id = fields.UUID()
+    name = fields.String()
+    icon = fields.String()
+    openapi_schema = fields.String()
+    headers = fields.List(fields.Dict, default=[])
+    created_at = fields.Integer(default=0)
+    # updated_at = fields.Integer(default=0)
+
+    @pre_dump
+    def format_headers(self, data: ApiToolProvider, **kwargs):
+        """格式化headers字段"""
+        return {
+            "id": data.id,
+            "name": data.name,
+            "icon": data.icon,
+            "openapi_schema": data.openapi_schema,
+            "headers": data.headers,
+            "created_at": int(data.created_at.timestamp()),
+        }
+
+
+class GetApiToolResp(Schema):
+    """获取API工具响应"""
+
+    id = fields.UUID()
+    name = fields.String()
+    description = fields.String()
+    inputs = fields.List(fields.Dict, default=[])
+    provider = fields.Dict()
+
+    @pre_dump
+    def format_provider(self, data: ApiTool, **kwargs):
+        """格式化provider字段"""
+        provider = data.provider
+        return {
+            "id": data.id,
+            "name": data.name,
+            "description": data.description,
+            "inputs": [
+                {k: v for k, v in parameter.items() if k != "in"}
+                for parameter in data.parameters
+            ],
+            "provider": {
+                "id": provider.id,
+                "name": provider.name,
+                "icon": provider.icon,
+                "description": provider.description,
+                "headers": provider.headers,
+            },
+        }

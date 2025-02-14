@@ -1,9 +1,10 @@
 import json
+from uuid import UUID
 from typing import Any
 from injector import inject
 from dataclasses import dataclass
 
-from internal.exception import ValidateErrorException
+from internal.exception import ValidateErrorException, NotFoundException
 from internal.core.tools.api_tools.entities import OpenAPISchema
 from internal.schema.api_tool_schema import CreateApiToolReq
 from pkg.sqlalchemy import SQLAlchemy
@@ -16,6 +17,32 @@ class ApiToolService:
     """自定义API插件服务"""
 
     db: SQLAlchemy
+
+    def get_api_tool(self, provider_id: UUID, tool_name: str) -> ApiTool:
+        """根据传递的provider_id和tool_name获取API工具"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        api_tool = (
+            self.db.session.query(ApiTool)
+            .filter_by(provider_id=provider_id, name=tool_name)
+            .one_or_none()
+        )
+        if not api_tool or str(api_tool.account_id) != account_id:
+            raise NotFoundException("API工具不存在")
+
+        return api_tool
+
+    def get_api_tool_provider(self, provider_id: UUID) -> ApiToolProvider:
+        """根据传递的provider_id获取API工具提供者"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        if not api_tool_provider or str(api_tool_provider.account_id) != account_id:
+            raise NotFoundException("API工具提供者不存在")
+
+        return api_tool_provider
 
     def create_api_tool(self, req: CreateApiToolReq) -> None:
         """根据传递的请求创建自定义API工具"""
@@ -64,6 +91,26 @@ class ApiToolService:
                         parameters=method_item.get("parameters", []),
                     )
                     self.db.session.add(api_tool)
+
+    def delete_api_tool_provider(self, provider_id: UUID) -> None:
+        """根据传递的provider_id删除API工具提供者 + API工具"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 先查找数据，检测是否存在，权限是否正确
+        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+
+        if not api_tool_provider or str(api_tool_provider.account_id) != account_id:
+            raise NotFoundException("API工具提供者不存在")
+
+        # 开启数据库自动提交
+        with self.db.auto_commit():
+            # 删除API工具
+            self.db.session.query(ApiTool).filter(
+                ApiTool.provider_id == provider_id, ApiTool.account_id == account_id
+            ).delete()
+            # 删除API工具提供者
+            self.db.session.delete(api_tool_provider)
 
     @classmethod
     def parse_openapi_schema(cls, openapi_schema_str: str) -> OpenAPISchema:
