@@ -19,6 +19,7 @@ venv/
 *.log
 *.out
 *.err
+logs/
 
 # 数据库和临时文件
 *.sqlite3

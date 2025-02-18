@@ -1,3 +1,4 @@
+import logging
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -5,6 +6,7 @@ from flask_migrate import Migrate
 
 from internal.exception.exception import CustomException
 from internal.router import Router
+from internal.extension import logging_extension
 from config import Config
 
 from pkg.response.http_code import HttpCode
@@ -36,6 +38,7 @@ class Http(Flask):
         # 注册数据库
         db.init_app(self)
         migrate.init_app(self, db, directory="internal/migration")
+        logging_extension.init_app(self)
         # with self.app_context():  # 创建上下文
         #     _ = App()
         #     db.create_all()
@@ -50,6 +53,10 @@ class Http(Flask):
 
     def _register_error_handler(self, error: Exception):
         """注册异常处理"""
+
+        # 日志记录异常信息
+        logging.error("An error occurred: %s", error, exc_info=True)
+
         # 1. 获取异常信息， 如果是自定义异常，获取code和message等信息
         if isinstance(error, CustomException):
             return (
