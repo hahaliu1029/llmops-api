@@ -45,9 +45,8 @@ class ApiProvidersManager(BaseModel):
                 parameter = parameter_map.get(key)
                 if parameter is None:
                     continue
-
                 # 将参数存储到合适的位置上，默认在query上
-                parameters[parameter.get("in"), ParameterIn.QUERY][key] = value
+                parameters[parameter.get("in", ParameterIn.QUERY)][key] = value
 
             # 构建request请求并返回采集的内容
             return requests.request(

@@ -83,6 +83,6 @@ class ApiTool(db.Model):
     )
 
     @property
-    def provider(self) -> ApiToolProvider:
+    def provider(self) -> "ApiToolProvider":
         """只读属性，获取API工具提供者信息"""
         return db.session.query(ApiToolProvider).get(self.provider_id)

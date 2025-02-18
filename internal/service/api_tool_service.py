@@ -16,6 +16,7 @@ from pkg.paginator import Paginator
 from internal.model import ApiToolProvider, ApiTool
 from sqlalchemy import desc
 from .base_service import BaseService
+from internal.core.tools.api_tools.providers import ApiProvidersManager
 
 
 @inject
@@ -24,6 +25,7 @@ class ApiToolService(BaseService):
     """自定义API插件服务"""
 
     db: SQLAlchemy
+    api_providers_manager: ApiProvidersManager
 
     def update_api_tool_provider(
         self, provider_id: UUID, req: UpdateApiToolProviderReq
@@ -250,3 +252,38 @@ class ApiToolService(BaseService):
             raise ValidateErrorException("传递数据必须符合OpenAPI规范")
 
         return OpenAPISchema(**data)
+
+    def api_tool_invoke(self):
+        provider_id = "d6973469-c231-4cb8-a16e-0a8e94c708c1"
+        tool_name = "YoudaoSuggest"
+
+        api_tool = (
+            self.db.session.query(ApiTool)
+            .filter(ApiTool.provider_id == provider_id, ApiTool.name == tool_name)
+            .one_or_none()
+        )
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print("api_tool", api_tool)
+        api_tool_provider = api_tool.provider
+        print("api_tool_provider", api_tool_provider)
+
+        from internal.core.tools.api_tools.entities import ToolEntity
+
+        tool = self.api_providers_manager.get_tool(
+            ToolEntity(
+                id=provider_id,
+                name=tool_name,
+                url=api_tool.url,
+                method=api_tool.method,
+                description=api_tool.description,
+                headers=api_tool_provider.headers,
+                parameters=api_tool.parameters,
+            )
+        )
+
+        return tool.invoke(
+            {
+                "q": "hello",
+                "doctype": "json",
+            }
+        )
