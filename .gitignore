@@ -47,4 +47,4 @@ storage/
 Thumbs.db
 
 # 模型文件
-internal/core/embeddings
+internal/core/embeddings/*
