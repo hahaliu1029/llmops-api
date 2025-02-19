@@ -148,5 +148,10 @@ class Router:
             view_func=self.dataset_handler.update_dataset,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/embeddings",
+            view_func=self.dataset_handler.embeddings_query,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)

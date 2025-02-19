@@ -10,7 +10,7 @@ from internal.schema.dataset_schema import (
 )
 from flask import request
 from pkg.response import validate_error_json, success_message, success_json
-from internal.service import DatasetService
+from internal.service import DatasetService, EmbeddingsService, JiebaService
 from pkg.paginator import PageModel
 
 
@@ -20,6 +20,26 @@ class DatasetHandler:
     """知识库处理器"""
 
     dataset_service: DatasetService
+    embeddings_service: EmbeddingsService
+    jieba_service: JiebaService
+
+    def embeddings_query(self):
+        """文本嵌入查询"""
+        query = request.args.get("query")
+        keywords = self.jieba_service.extract_keywords(query)
+        return success_json(
+            {
+                "query": query,
+                "keywords": keywords,
+            }
+        )
+        # vectors = self.embeddings_service.embeddings.embed_query(query)
+        # return success_json(
+        #     {
+        #         "query": query,
+        #         "vectors": vectors,
+        #     }
+        # )
 
     def create_dataset(self):
         """创建知识库"""
