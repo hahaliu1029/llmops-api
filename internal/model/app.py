@@ -43,3 +43,24 @@ class App(db.Model):
         DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)")
     )
     a_id = Column(UUID, nullable=False, server_default=text("uuid_generate_v4()"))
+
+
+class AppDatasetJoin(db.Model):
+    """应用与知识库关联表"""
+
+    __tablename__ = "app_dataset_join"
+
+    __table_args__ = (PrimaryKeyConstraint("id", name="pk_app_dataset_join_id"),)
+
+    id = Column(UUID, nullable=False, server_default=text("uuid_generate_v4()"))
+    app_id = Column(UUID, nullable=False)
+    dataset_id = Column(UUID, nullable=False)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+    )
+    created_at = Column(
+        DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)")
+    )
