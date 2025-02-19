@@ -45,3 +45,6 @@ storage/
 
 # Windows系统文件
 Thumbs.db
+
+# 模型文件
+internal/core/embeddings
