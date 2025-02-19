@@ -26,6 +26,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda, Runnab
 from langchain_core.memory import BaseMemory
 from langchain_core.tracers.schemas import Run
 from internal.service import ApiToolService
+from internal.task.demo_task import demo_task
 
 
 @inject
@@ -43,6 +44,7 @@ class AppHandler:
         return success_message(f"创建应用成功，应用ID为{app.id}")
 
     def ping(self):
+        demo_task.delay(uuid.uuid4())
         return self.api_tool_service.api_tool_invoke()
         # providers = self.provider_factory.get_provider_entities()
         # return success_json()

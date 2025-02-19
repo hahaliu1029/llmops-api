@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 
 from internal.exception.exception import CustomException
 from internal.router import Router
-from internal.extension import logging_extension
+from internal.extension import logging_extension, redis_extension, celery_extension
 from config import Config
 
 from pkg.response.http_code import HttpCode
@@ -39,6 +39,8 @@ class Http(Flask):
         db.init_app(self)
         migrate.init_app(self, db, directory="internal/migration")
         logging_extension.init_app(self)
+        redis_extension.init_app(self)
+        celery_extension.init_app(self)
         # with self.app_context():  # 创建上下文
         #     _ = App()
         #     db.create_all()
