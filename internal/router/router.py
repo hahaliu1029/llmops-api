@@ -6,6 +6,7 @@ from internal.handler import (
     BuiltinToolHandler,
     ApiToolHandler,
     UploadFileHandler,
+    DatasetHandler,
 )
 
 
@@ -18,6 +19,7 @@ class Router:
     builtin_tool_handler: BuiltinToolHandler
     api_tool_handler: ApiToolHandler
     upload_file_handler: UploadFileHandler
+    dataset_handler: DatasetHandler
 
     def register_router(self, app: Flask):
         """注册路由"""
@@ -121,6 +123,29 @@ class Router:
             "/upload-files/image",
             methods=["POST"],
             view_func=self.upload_file_handler.upload_image,
+        )
+
+        # 知识库模块
+        blueprint.add_url_rule(
+            "/datasets",
+            view_func=self.dataset_handler.get_datasets_with_page,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets",
+            methods=["POST"],
+            view_func=self.dataset_handler.create_dataset,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>",
+            view_func=self.dataset_handler.get_dataset,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>",
+            methods=["POST"],
+            view_func=self.dataset_handler.update_dataset,
         )
 
         # 3. 注册蓝图
