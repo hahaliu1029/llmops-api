@@ -12,6 +12,9 @@ from flask import request
 from pkg.response import validate_error_json, success_message, success_json
 from internal.service import DatasetService, EmbeddingsService, JiebaService
 from pkg.paginator import PageModel
+from internal.core.file_extractor import FileExtractor
+from pkg.sqlalchemy import SQLAlchemy
+from internal.model import UploadFile
 
 
 @inject
@@ -22,17 +25,28 @@ class DatasetHandler:
     dataset_service: DatasetService
     embeddings_service: EmbeddingsService
     jieba_service: JiebaService
+    file_extractor: FileExtractor
+    db: SQLAlchemy
 
     def embeddings_query(self):
         """文本嵌入查询"""
-        query = request.args.get("query")
-        keywords = self.jieba_service.extract_keywords(query)
+        upload_file = self.db.session.query(UploadFile).get(
+            "535c4317-8445-47af-964e-af1abeecbd7d"
+        )
+        content = self.file_extractor.load(upload_file, return_text=True)
         return success_json(
             {
-                "query": query,
-                "keywords": keywords,
+                "content": content,
             }
         )
+        # query = request.args.get("query")
+        # keywords = self.jieba_service.extract_keywords(query)
+        # return success_json(
+        #     {
+        #         "query": query,
+        #         "keywords": keywords,
+        #     }
+        # )
         # vectors = self.embeddings_service.embeddings.embed_query(query)
         # return success_json(
         #     {
