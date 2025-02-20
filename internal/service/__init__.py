@@ -8,6 +8,9 @@ from .upload_file_service import UploadFileService
 from .dataset_service import DatasetService
 from .embeddings_service import EmbeddingsService
 from .jieba_service import JiebaService
+from .document_service import DocumentService
+from .indexing_service import IndexingService
+from .process_rule_service import ProcessRuleService
 
 __all__ = [
     "AppService",
@@ -20,4 +23,7 @@ __all__ = [
     "DatasetService",
     "EmbeddingsService",
     "JiebaService",
+    "DocumentService",
+    "IndexingService",
+    "ProcessRuleService",
 ]

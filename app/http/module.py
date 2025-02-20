@@ -6,6 +6,7 @@ from internal.extension.migrate_extention import migrate
 from internal.extension.redis_extension import redis_client
 from pkg.sqlalchemy import SQLAlchemy
 from redis import Redis
+from injector import Injector
 
 
 class ExtentionModule(Module):
@@ -15,3 +16,6 @@ class ExtentionModule(Module):
         binder.bind(SQLAlchemy, to=db)
         binder.bind(Migrate, to=migrate)
         binder.bind(Redis, to=redis_client)
+
+
+injector = Injector([ExtentionModule])

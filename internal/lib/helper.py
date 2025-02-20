@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 from typing import Any
 
@@ -16,3 +17,10 @@ def add_attribute(attr_name: str, attr_value: Any):
         return func
 
     return decorator
+
+
+def generate_text_hash(text: str) -> str:
+    """生成文本的hash值"""
+    # 将需要计算的内容加上None，防止传入空字符串时报错
+    text = str(text) + "None"
+    return hashlib.sha3_256(text.encode()).hexdigest()

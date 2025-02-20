@@ -7,6 +7,7 @@ from internal.handler import (
     ApiToolHandler,
     UploadFileHandler,
     DatasetHandler,
+    DocumentHandler,
 )
 
 
@@ -20,6 +21,7 @@ class Router:
     api_tool_handler: ApiToolHandler
     upload_file_handler: UploadFileHandler
     dataset_handler: DatasetHandler
+    document_handler: DocumentHandler
 
     def register_router(self, app: Flask):
         """注册路由"""
@@ -151,6 +153,12 @@ class Router:
         blueprint.add_url_rule(
             "/datasets/embeddings",
             view_func=self.dataset_handler.embeddings_query,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents",
+            methods=["POST"],
+            view_func=self.document_handler.create_documents,
         )
 
         # 3. 注册蓝图
