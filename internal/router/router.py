@@ -167,5 +167,10 @@ class Router:
             view_func=self.dataset_handler.hit,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/batch/<string:batch>",
+            view_func=self.document_handler.get_documents_status,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)

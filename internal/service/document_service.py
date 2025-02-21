@@ -5,15 +5,23 @@ from typing import List
 from injector import inject
 from dataclasses import dataclass
 
-from sqlalchemy import UUID, desc
+from sqlalchemy import UUID, asc, desc, func
 
-from internal.exception import ForbiddenException, FailException
+from internal.exception import ForbiddenException, FailException, NotFoundException
 from .base_service import BaseService
 from pkg.sqlalchemy import SQLAlchemy
-from internal.entity.dataset_entity import ProcessType
-from internal.model import Document, Dataset, UploadFile, ProcessRule
+from internal.entity.dataset_entity import ProcessType, SegmentStatus
+from internal.model import (
+    Document,
+    Dataset,
+    UploadFile,
+    ProcessRule,
+    upload_file,
+    Segment,
+)
 from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from internal.task.document_task import build_documents
+from internal.lib.helper import datetime_to_timestamp
 
 
 @inject
@@ -95,6 +103,80 @@ class DocumentService(BaseService):
 
         # 返回文档列表与处理批次
         return documents, batch
+
+    def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
+        """根据传递的知识库id和批次号获取文档列表状态"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 检测知识库权限
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise ForbiddenException("无权限操作该知识库或知识库不存在")
+
+        # 查询当前知识库下该批次的文档列表
+        documents = (
+            self.db.session.query(Document)
+            .filter(
+                Document.dataset_id == dataset_id,
+                Document.batch == batch,
+            )
+            .order_by(asc("position"))
+            .all()
+        )
+        if documents is None or len(documents) == 0:
+            raise NotFoundException("该处理批次未找到文档")
+
+        # 循环遍历文档列表提取文档的状态信息
+        documents_status = []
+        for document in documents:
+            # 查询每个文档的总片段书和已构建完成的片段数
+            segment_count = (
+                self.db.session.query(func.count(Segment.id))
+                .filter(Segment.document_id == document.id)
+                .scalar()
+            )
+            completed_segment_count = (
+                self.db.session.query(func.count(Segment.id))
+                .filter(
+                    Segment.document_id == document.id,
+                    Segment.status == SegmentStatus.COMPLETED,
+                )
+                .scalar()
+            )
+
+            upload_file = document.upload_file
+            documents_status.append(
+                {
+                    "id": document.id,
+                    "name": document.name,
+                    "size": upload_file.size,
+                    "extension": upload_file.extension,
+                    "mime_type": upload_file.mime_type,
+                    "position": document.position,
+                    "segment_count": segment_count,
+                    "completed_segment_count": completed_segment_count,
+                    "error": document.error,
+                    "status": document.status,
+                    "processing_started_at": datetime_to_timestamp(
+                        document.processing_started_at
+                    ),
+                    "parsing_completed_at": datetime_to_timestamp(
+                        document.parsing_completed_at
+                    ),
+                    "splitting_completed_at": datetime_to_timestamp(
+                        document.splitting_completed_at
+                    ),
+                    "indexing_completed_at": datetime_to_timestamp(
+                        document.indexing_completed_at
+                    ),
+                    "completed_at": datetime_to_timestamp(document.completed_at),
+                    "stopped_at": datetime_to_timestamp(document.stopped_at),
+                    "created_at": datetime_to_timestamp(document.created_at),
+                }
+            )
+
+        return documents_status
 
     def get_latest_document_position(self, dataset_id: UUID) -> int:
         """根据传递的知识库id获取最新文档位置"""

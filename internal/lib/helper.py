@@ -1,3 +1,4 @@
+from datetime import datetime
 import hashlib
 import importlib
 from typing import Any
@@ -24,3 +25,10 @@ def generate_text_hash(text: str) -> str:
     # 将需要计算的内容加上None，防止传入空字符串时报错
     text = str(text) + "None"
     return hashlib.sha3_256(text.encode()).hexdigest()
+
+
+def datetime_to_timestamp(dt: datetime) -> int:
+    """将datetime类型转换为时间戳，如果数据不存在则返回0"""
+    if dt is None:
+        return 0
+    return int(dt.timestamp())
