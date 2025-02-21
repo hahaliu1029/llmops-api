@@ -7,6 +7,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_weaviate import WeaviateVectorStore
 from weaviate.classes.query import Filter
 from langchain_openai import OpenAIEmbeddings
+from weaviate.classes.config import DataType
 
 dotenv.load_dotenv(override=True)
 
@@ -40,6 +41,22 @@ client = weaviate.connect_to_local(
     port=8080,
 )
 
+# 删除已有的 Dataset 类（如果存在）
+try:
+    client.collections.delete("Dataset")
+except Exception as e:
+    print(f"❗忽略删除错误：{e}")
+
+# 重新创建 Dataset 类，✅ 这里修正 data_type
+client.collections.create(
+    name="Dataset",
+    properties=[
+        {"name": "text", "data_type": DataType.TEXT},  # ✅ 使用 DataType.TEXT
+        {"name": "account_id", "data_type": DataType.UUID},  # ✅ 使用 DataType.STRING
+    ],
+)
+
+print("✅ Schema 更新完成")
 # client = weaviate.connect_to_wcs(
 #     cluster_url="https://d06gk6iwtssfxu50fov2ta.c0.us-west3.gcp.weaviate.cloud",
 #     auth_credentials=AuthApiKey("rwOwzVdNRvhqeCykTGOA9cm2OQv2al6OtI6e"),
@@ -49,26 +66,26 @@ client = weaviate.connect_to_local(
 #     model_name="Alibaba-NLP/gte-modernbert-base",
 # )
 
-embedding = OpenAIEmbeddings(
-    model="text-embedding-3-small",
-    openai_api_base=os.getenv("OPENAI_API_BASE"),
-    openai_api_key=os.getenv("OPENAI_API_KEY"),
-)
+# embedding = OpenAIEmbeddings(
+#     model="text-embedding-3-small",
+#     openai_api_base=os.getenv("OPENAI_API_BASE"),
+#     openai_api_key=os.getenv("OPENAI_API_KEY"),
+# )
 
-# 创建langchain向量数据库实例
-db = WeaviateVectorStore(
-    client=client,
-    index_name="Dataset",
-    text_key="text",
-    embedding=embedding,
-)
+# # 创建langchain向量数据库实例
+# db = WeaviateVectorStore(
+#     client=client,
+#     index_name="Dataset",
+#     text_key="text",
+#     embedding=embedding,
+# )
 
-# 向数据库中添加数据
-ids = db.add_texts(texts, metadatas)
+# # 向数据库中添加数据
+# ids = db.add_texts(texts, metadatas)
 
-print(ids)
+# print(ids)
 
-# 从数据库中搜索相似文本
-filters = Filter.by_property("page").greater_or_equal(5)
-results = db.similarity_search_with_score("我的猫叫笨笨", filters=filters)
-print(results)
+# # 从数据库中搜索相似文本
+# filters = Filter.by_property("page").greater_or_equal(5)
+# results = db.similarity_search_with_score("我的猫叫笨笨", filters=filters)
+# print(results)

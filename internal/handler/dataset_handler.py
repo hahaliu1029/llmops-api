@@ -10,7 +10,12 @@ from internal.schema.dataset_schema import (
 )
 from flask import request
 from pkg.response import validate_error_json, success_message, success_json
-from internal.service import DatasetService, EmbeddingsService, JiebaService
+from internal.service import (
+    DatasetService,
+    EmbeddingsService,
+    JiebaService,
+    VectorDatabaseService,
+)
 from pkg.paginator import PageModel
 from internal.core.file_extractor import FileExtractor
 from pkg.sqlalchemy import SQLAlchemy
@@ -27,6 +32,7 @@ class DatasetHandler:
     jieba_service: JiebaService
     file_extractor: FileExtractor
     db: SQLAlchemy
+    vector_database_service: VectorDatabaseService
 
     def embeddings_query(self):
         """文本嵌入查询"""
@@ -54,6 +60,47 @@ class DatasetHandler:
         #         "vectors": vectors,
         #     }
         # )
+
+    def hit(self, dataset_id: UUID):
+        from weaviate.classes.query import Filter
+
+        query = "关于拓扑的相关生成内容有哪些？"
+        retriever = self.vector_database_service.vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={
+                "k": 10,
+                "filters": Filter.all_of(
+                    [
+                        Filter.by_property("document_enabled").equal(True),
+                        Filter.by_property("segment_enabled").equal(True),
+                        Filter.any_of(
+                            [
+                                Filter.by_property("dataset_id").equal(
+                                    "bd3b17ef-b39b-4a64-af86-934494234379"
+                                ),
+                                Filter.by_property("dataset_id").equal(
+                                    "bd3b17ef-b39b-4a64-af86-934494234378"
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+            },
+        )
+
+        documents = retriever.invoke(query)
+
+        return success_json(
+            {
+                "ducuments": [
+                    {
+                        "page_content": document.page_content,
+                        "metadata": document.metadata,
+                    }
+                    for document in documents
+                ]
+            }
+        )
 
     def create_dataset(self):
         """创建知识库"""

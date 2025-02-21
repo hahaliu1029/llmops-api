@@ -161,5 +161,11 @@ class Router:
             view_func=self.document_handler.create_documents,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/hit",
+            methods=["POST"],
+            view_func=self.dataset_handler.hit,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)
