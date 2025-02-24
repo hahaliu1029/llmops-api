@@ -69,22 +69,24 @@ class DatasetHandler:
             search_type="mmr",
             search_kwargs={
                 "k": 10,
-                # "filters": Filter.all_of(
-                #     [
-                #         Filter.by_property("document_enabled").equal(False),
-                #         # Filter.by_property("segment_enabled").equal(True),
-                #         # Filter.any_of(
-                #         #     [
-                #         #         Filter.by_property("dataset_id").equal(
-                #         #             "bd3b17ef-b39b-4a64-af86-934494234379"
-                #         #         ),
-                #         #         Filter.by_property("dataset_id").equal(
-                #         #             "bd3b17ef-b39b-4a64-af86-934494234378"
-                #         #         ),
-                #         #     ]
-                #         # ),
-                #     ]
-                # ),
+                "filters": Filter.all_of(
+                    [
+                        Filter.by_property("segment_id").equal(
+                            "f3d1c9aa-7606-4a43-b6d3-7888ac3dc022"
+                        ),
+                        # Filter.by_property("segment_enabled").equal(True),
+                        # Filter.any_of(
+                        #     [
+                        #         Filter.by_property("dataset_id").equal(
+                        #             "bd3b17ef-b39b-4a64-af86-934494234379"
+                        #         ),
+                        #         Filter.by_property("dataset_id").equal(
+                        #             "bd3b17ef-b39b-4a64-af86-934494234378"
+                        #         ),
+                        #     ]
+                        # ),
+                    ]
+                ),
             },
         )
 

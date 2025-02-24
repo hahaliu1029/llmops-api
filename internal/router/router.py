@@ -8,6 +8,7 @@ from internal.handler import (
     UploadFileHandler,
     DatasetHandler,
     DocumentHandler,
+    SegmentHandler,
 )
 
 
@@ -22,6 +23,7 @@ class Router:
     upload_file_handler: UploadFileHandler
     dataset_handler: DatasetHandler
     document_handler: DocumentHandler
+    segment_handler: SegmentHandler
 
     def register_router(self, app: Flask):
         """注册路由"""
@@ -198,6 +200,22 @@ class Router:
             "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/delete",
             methods=["POST"],
             view_func=self.document_handler.delete_document,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments",
+            view_func=self.segment_handler.get_segments_with_page,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>",
+            view_func=self.segment_handler.get_segment,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/enabled",
+            methods=["POST"],
+            view_func=self.segment_handler.update_segment_enabled,
         )
 
         # 3. 注册蓝图
