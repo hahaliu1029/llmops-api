@@ -8,6 +8,7 @@ from internal.schema.segment_schema import (
     GetSegmentResp,
     UpdateSegmentEnabledReq,
     CreateSegmentReq,
+    UpdateSegmentReq,
 )
 from pkg.response import validate_error_json, success_json, success_message
 from internal.service import SegmentService
@@ -71,3 +72,15 @@ class SegmentHandler:
         )
 
         return success_message("片段启用状态更新成功")
+
+    def update_segment(self, dataset_id: UUID, document_id: UUID, segment_id: UUID):
+        """根据传递的信息更新文档片段信息"""
+        # 1.提取请求并校验
+        req = UpdateSegmentReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务更新文档片段信息
+        self.segment_service.update_segment(dataset_id, document_id, segment_id, req)
+
+        return success_message("更新文档片段成功")

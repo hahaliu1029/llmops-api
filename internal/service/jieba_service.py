@@ -2,7 +2,8 @@ from injector import inject
 from dataclasses import dataclass
 from internal.entity.jieba_entity import STOPWORD_SET
 from jieba.analyse import default_tfidf, extract_tags
-import jieba.analyse
+
+# import jieba.analyse
 
 
 @inject
