@@ -93,22 +93,56 @@ class IndexingService(BaseService):
             raise NotFoundException("文档不存在")
 
         # 查找归属于当前文档的所有片段的节点id
-        node_ids = [
-            node_id
-            for node_id, in self.db.session.query(Segment)
-            .with_entities(Segment.node_id)
-            .filter(Segment.document_id == document_id)
+        segments = (
+            self.db.session.query(Segment)
+            .with_entities(Segment.id, Segment.node_id, Segment.enabled)
+            .filter(
+                Segment.document_id == document_id,
+                Segment.status == SegmentStatus.COMPLETED,
+            )
             .all()
-        ]
+        )
+        segment_ids = [id for id, _, _ in segments]
+        node_ids = [node_id for _, node_id, _ in segments]
 
         # 执行循环遍历所有node_ids并更新向量数据库中的记录
         try:
             collection = self.vector_database_service.collection
             for node_id in node_ids:
-                collection.data.update(
-                    uuid=node_id,
-                    properties={"document_enabled": document.enabled},
+                try:
+                    collection.data.update(
+                        uuid=node_id,
+                        properties={"document_enabled": document.enabled},
+                    )
+                except Exception as e:
+                    with self.db.auto_commit():
+                        self.db.session.query(Segment).filter(
+                            Segment.node_id == node_id
+                        ).update(
+                            {
+                                "error": str(e),
+                                "status": SegmentStatus.ERROR,
+                                "enabled": False,
+                                "disabled_at": datetime.now(),
+                                "stopped_at": datetime.now(),
+                            }
+                        )
+
+            # 更新关键词表对应的数据（enabled为false表示从关键词表中删除数据，enabled为true表示在关键词表中新增数据)
+            if document.enabled is True:
+                # 从禁用改为启用，需要新增关键词
+                enabled_segment_ids = [
+                    segment_id for segment_id, _, enabled in segments if enabled is True
+                ]
+                self.keyword_table_service.add_keyword_table_from_ids(
+                    document.dataset_id, enabled_segment_ids
                 )
+            else:
+                # 从启用改为禁用，需要剔除关键词
+                self.keyword_table_service.delete_keyword_table_from_ids(
+                    document.dataset_id, segment_ids
+                )
+
         except Exception as e:
             # 记录日志并将状态修改回原状态
             logging.exception(
@@ -147,40 +181,10 @@ class IndexingService(BaseService):
                 Segment.document_id == document_id
             ).delete()
 
-        # 记录需要删除的片段id和空关键词列表
-        segment_ids_to_delete = set(segment_ids)
-        keywords_to_delete = set()
-
-        # 更新知识库关键词表信息，并且该操作需要上锁，避免并发更新的时候出现关键词映射错误的问题
-        cache_key = LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE.format(
-            dataset_id=dataset_id
+        # 删除片段id对应的关键词记录
+        self.keyword_table_service.delete_keyword_table_from_ids(
+            dataset_id=dataset_id, segment_ids=segment_ids
         )
-        with self.redis_client.lock(cache_key, timeout=LOCK_EXPIRE_TIME):
-            # 获取关键词表信息
-            keyword_table_record = (
-                self.keyword_table_service.get_keyword_table_from_dataset_id(dataset_id)
-            )
-            keyword_table = keyword_table_record.keyword_table.copy()
-
-            # 循环遍历关键词表，执行判断与更新
-            for keyword, ids in keyword_table.items():
-                ids_set = set(ids)
-                if segment_ids_to_delete.intersection(ids_set):
-                    keyword_table[keyword] = list(
-                        ids_set.difference(segment_ids_to_delete)
-                    )
-                    if not keyword_table[keyword]:
-                        keywords_to_delete.add(keyword)
-
-            # 检测空关键词数据并删除（关键词并没有映射任何字段id的数据）
-            for keyword in keywords_to_delete:
-                del keyword_table[keyword]
-
-            # 将数据更新到关键词表中
-            self.update(
-                keyword_table_record,
-                keyword_table=keyword_table,
-            )
 
     def _parsing(self, document: Document) -> list[LC_Document]:
         """解析传递的文档为langchain的文档列表"""
