@@ -218,5 +218,11 @@ class Router:
             view_func=self.segment_handler.update_segment_enabled,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments",
+            methods=["POST"],
+            view_func=self.segment_handler.create_segment,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)

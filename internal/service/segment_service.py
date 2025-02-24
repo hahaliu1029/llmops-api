@@ -1,23 +1,26 @@
 from datetime import datetime
 import logging
 from uuid import UUID
+import uuid
 from injector import inject
 from dataclasses import dataclass
 
-from sqlalchemy import asc
+from sqlalchemy import asc, func
 from .base_service import BaseService
 from pkg.sqlalchemy import SQLAlchemy
-from internal.schema.segment_schema import (
-    GetSegmentsWithPageReq,
-)
+from internal.schema.segment_schema import GetSegmentsWithPageReq, CreateSegmentReq
 from internal.model import Segment, Document
 from pkg.paginator import Paginator
-from internal.exception import NotFoundException, FailException
-from internal.entity.dataset_entity import SegmentStatus
+from internal.exception import NotFoundException, FailException, ValidateErrorException
+from internal.entity.dataset_entity import SegmentStatus, DocumentStatus
 from internal.entity.cache_entity import LOCK_SEGMENT_UPDATE_ENABLED, LOCK_EXPIRE_TIME
 from redis import Redis
 from .keyword_table_service import KeywordTableService
 from .vector_database_service import VectorDatabaseService
+from .embeddings_service import EmbeddingsService
+from .jieba_service import JiebaService
+from internal.lib.helper import generate_text_hash
+from langchain_core.documents import Document as LC_Document
 
 
 @inject
@@ -29,6 +32,120 @@ class SegmentService(BaseService):
     redis_client: Redis
     keyword_table_service: KeywordTableService
     vector_database_service: VectorDatabaseService
+    embeddings_service: EmbeddingsService
+    jieba_service: JiebaService
+
+    def create_segment(
+        self, dataset_id: UUID, document_id: UUID, req: CreateSegmentReq
+    ) -> Segment:
+        """根据传递的信息创建片段"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 校验上传内容的token数，不能超过1000
+        token_count = self.embeddings_service.calculate_token_count(req.content.data)
+        if token_count > 1000:
+            raise ValidateErrorException("上传内容的token数不能超过1000")
+
+        # 获取文档信息并校验
+        document = self.get(Document, document_id)
+        if (
+            document is None
+            or document.dataset_id != dataset_id
+            or str(document.account_id) != account_id
+        ):
+            raise NotFoundException("文档不存在")
+
+        # 判断文档状态是否可以新增片段，只有completed状态的文档才可以新增片段
+        if document.status != DocumentStatus.COMPLETED:
+            raise FailException("文档状态异常，无法新增片段")
+
+        # 提取文档片段的最大位置
+        position = (
+            self.db.session.query(func.coalesce(func.max(Segment.position), 0))
+            .filter(Segment.document_id == document_id)
+            .scalar()
+        )
+
+        # 检测是否传递了keywords，如果没有，调用jieba进行分词
+        if req.keywords.data is None or len(req.keywords.data) == 0:
+            req.keywords.data = self.jieba_service.extract_keywords(
+                req.content.data, 10
+            )
+
+        # 往pgsql中新增记录
+        segment = None
+        try:
+            # 位置+1并新增记录
+            position += 1
+            segment = self.create(
+                Segment,
+                account_id=account_id,
+                dataset_id=dataset_id,
+                document_id=document_id,
+                node_id=uuid.uuid4(),
+                position=position,
+                content=req.content.data,
+                character_count=len(req.content.data),
+                token_count=token_count,
+                keywords=req.keywords.data,
+                hash=generate_text_hash(req.content.data),
+                enabled=True,
+                processing_started_at=datetime.now(),
+                indexing_completed_at=datetime.now(),
+                completed_at=datetime.now(),
+                status=SegmentStatus.COMPLETED,
+            )
+
+            # 往向量数据库中新增数据
+            self.vector_database_service.vector_store.add_documents(
+                [
+                    LC_Document(
+                        page_content=req.content.data,
+                        metadata={
+                            "account_id": str(document.account_id),
+                            "dataset_id": str(document.dataset_id),
+                            "document_id": str(document.id),
+                            "segment_id": str(segment.id),
+                            "node_id": str(segment.node_id),
+                            "document_enabled": document.enabled,
+                            "segment_enabled": True,
+                        },
+                    )
+                ],
+                ids=[str(segment.node_id)],
+            )
+
+            # 重新计算片段的字符总数以及token总数
+            document_character_count, document_token_count = self.db.session.query(
+                func.coalesce(func.sum(Segment.character_count), 0),
+                func.coalesce(func.sum(Segment.token_count), 0),
+            ).first()
+
+            # 更新文档的字符总数以及token总数
+            self.update(
+                document,
+                character_count=document_character_count,
+                token_count=document_token_count,
+            )
+
+            # 更新关键词表信息
+            if document.enabled is True:
+                self.keyword_table_service.add_keyword_table_from_ids(
+                    dataset_id, [segment.id]
+                )
+        except Exception as e:
+            logging.exception(f"文档片段新增失败，错误信息：{str(e)}")
+            if segment:
+                self.update(
+                    segment,
+                    error=str(e),
+                    status=SegmentStatus.ERROR,
+                    enabled=False,
+                    disabled_at=datetime.now(),
+                    stopped_at=datetime.now(),
+                )
+            raise FailException("文档片段新增失败")
 
     def get_segments_with_page(
         self, dataset_id: UUID, document_id: UUID, req: GetSegmentsWithPageReq

@@ -7,6 +7,7 @@ from internal.schema.segment_schema import (
     GetSegmentsWithPageResp,
     GetSegmentResp,
     UpdateSegmentEnabledReq,
+    CreateSegmentReq,
 )
 from pkg.response import validate_error_json, success_json, success_message
 from internal.service import SegmentService
@@ -19,6 +20,18 @@ class SegmentHandler:
     """片段处理器"""
 
     segment_service: SegmentService
+
+    def create_segment(self, dataset_id: UUID, document_id: UUID):
+        """创建知识库文档片段"""
+        # 提取请求并校验
+        req = CreateSegmentReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务创建片段记录
+        self.segment_service.create_segment(dataset_id, document_id, req)
+
+        return success_message("新增文档片段成功")
 
     def get_segments_with_page(self, dataset_id: UUID, document_id: UUID):
         """获取指定知识库文档的片段列表信息"""
