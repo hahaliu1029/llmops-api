@@ -13,6 +13,7 @@ from internal.model import Document, Segment
 from .base_service import BaseService
 from pkg.sqlalchemy import SQLAlchemy
 from internal.entity.dataset_entity import DocumentStatus, SegmentStatus
+from internal.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
 from langchain_core.documents import Document as LC_Document
 from internal.core.file_extractor import FileExtractor
 from .process_rule_service import ProcessRuleService
@@ -21,6 +22,8 @@ from internal.lib.helper import generate_text_hash
 from .jieba_service import JiebaService
 from .keyword_table_service import KeywordTableService
 from .vector_database_service import VectorDatabaseService
+from internal.exception import NotFoundException
+from redis import Redis
 
 
 @inject
@@ -29,6 +32,7 @@ class IndexingService(BaseService):
     """索引服务"""
 
     db: SQLAlchemy
+    redis_client: Redis
     file_extractor: FileExtractor
     process_rule_service: ProcessRuleService
     embeddings_service: EmbeddingsService
@@ -71,6 +75,49 @@ class IndexingService(BaseService):
                     error=str(e),
                     stopped_at=datetime.now(),
                 )
+
+    def update_document_enabled(self, document_id: UUID) -> None:
+        """根据传递的文档id更新文档的启用状态, 同时修改weaviate向量数据库中的记录"""
+        # 构建缓存键
+        cache_key = LOCK_DOCUMENT_UPDATE_ENABLED.format(document_id=document_id)
+
+        # 根据传递的文档id获取文档信息
+        document = self.get(Document, document_id)
+        if document is None:
+            logging.exception(f"文档不存在, 文档ID: {document_id}")
+            raise NotFoundException("文档不存在")
+
+        # 查找归属于当前文档的所有片段的节点id
+        node_ids = [
+            node_id
+            for node_id, in self.db.session.query(Segment)
+            .with_entities(Segment.node_id)
+            .filter(Segment.document_id == document_id)
+            .all()
+        ]
+
+        # 执行循环遍历所有node_ids并更新向量数据库中的记录
+        try:
+            collection = self.vector_database_service.collection
+            for node_id in node_ids:
+                collection.data.update(
+                    uuid=node_id,
+                    properties={"document_enabled": document.enabled},
+                )
+        except Exception as e:
+            # 记录日志并将状态修改回原状态
+            logging.exception(
+                f"更新向量数据库失败, 文档id: {document_id}, 错误信息: {str(e)}"
+            )
+            origin_enable = not document.enabled
+            self.update(
+                document,
+                enabled=origin_enable,
+                disable_at=None if origin_enable else datetime.now(),
+            )
+        finally:
+            #  删除缓存
+            self.redis_client.delete(cache_key)
 
     def _parsing(self, document: Document) -> list[LC_Document]:
         """解析传递的文档为langchain的文档列表"""

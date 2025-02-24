@@ -172,5 +172,27 @@ class Router:
             view_func=self.document_handler.get_documents_status,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents",
+            view_func=self.document_handler.get_documents_with_page,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>",
+            view_func=self.document_handler.get_document,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/name",
+            methods=["POST"],
+            view_func=self.document_handler.update_document_name,
+        )
+
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/enabled",
+            methods=["POST"],
+            view_func=self.document_handler.update_document_enabled,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)
