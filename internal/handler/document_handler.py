@@ -59,6 +59,11 @@ class DocumentHandler:
 
         return success_message("文档名称更新成功")
 
+    def delete_document(self, dataset_id: UUID, document_id: UUID):
+        """根据传递的知识库ID和文档ID删除文档"""
+        self.document_service.delete_document(dataset_id, document_id)
+        return success_message("文档删除成功")
+
     def get_documents_with_page(self, dataset_id: UUID):
         """根据传递的知识库ID获取分页文档列表"""
         # 提取请求并校验

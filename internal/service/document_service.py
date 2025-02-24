@@ -21,7 +21,11 @@ from internal.model import (
     Segment,
 )
 from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
-from internal.task.document_task import build_documents, update_document_enabled
+from internal.task.document_task import (
+    build_documents,
+    update_document_enabled,
+    delete_document,
+)
 from internal.lib.helper import datetime_to_timestamp
 from internal.schema.document_schema import GetDocumentsWithPageReq
 from pkg.paginator import Paginator
@@ -216,6 +220,30 @@ class DocumentService(BaseService):
 
         # 更新文档信息
         return self.update(document, **kwargs)
+
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+        """根据传递的知识库id和文档id删除文档信息，涵盖：文档片段删除、关键词表更新、weaviate向量数据库记录删除"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 获取文档并校验权限
+        document = self.get(Document, document_id)
+        if document is None:
+            raise NotFoundException("文档不存在")
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            raise ForbiddenException("无权限操作该文档")
+
+        # 判断文档是否处于可以删除的状态，只有构建完成/出错才可以删除，其他情况需要等待构建完成
+        if document.status not in [DocumentStatus.COMPLETED, DocumentStatus.ERROR]:
+            raise FailException("当前文档处于无法删除状态，请稍后重试")
+
+        # 删除postgres数据库中的文档基础信息
+        self.delete(document)
+
+        # 调用异步任务，完成后续操作，涵盖：关键词表更新、片段数据删除、weaviate记录删除等
+        delete_document.delay(dataset_id, document_id)
+
+        return document
 
     def get_documents_with_page(
         self, dataset_id: UUID, req: GetDocumentsWithPageReq

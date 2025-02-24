@@ -42,21 +42,35 @@ client = weaviate.connect_to_local(
 )
 
 # 删除已有的 Dataset 类（如果存在）
-try:
-    client.collections.delete("Dataset")
-except Exception as e:
-    print(f"❗忽略删除错误：{e}")
+# try:
+#     client.collections.delete("Dataset")
+# except Exception as e:
+#     print(f"❗忽略删除错误：{e}")
 
-# 重新创建 Dataset 类，✅ 这里修正 data_type
-client.collections.create(
-    name="Dataset",
-    properties=[
-        {"name": "text", "data_type": DataType.TEXT},  # ✅ 使用 DataType.TEXT
-        {"name": "account_id", "data_type": DataType.UUID},  # ✅ 使用 DataType.STRING
-    ],
+# # 重新创建 Dataset 类，✅ 这里修正 data_type
+# client.collections.create(
+#     name="Dataset",
+#     properties=[
+#         {"name": "text", "data_type": DataType.TEXT},  # ✅ 使用 DataType.TEXT
+#         {"name": "account_id", "data_type": DataType.UUID},  # ✅ 使用 DataType.STRING
+#     ],
+# )
+
+# 获取 Dataset 集合
+collection = client.collections.get("Dataset")
+
+# 批量删除所有数据（修正写法）
+# 获取所有对象的 UUID
+# 构建过滤器
+where_filter = Filter.by_property("account_id").equal(
+    "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 )
 
-print("✅ Schema 更新完成")
+# 删除匹配条件的对象
+collection.data.delete_many(where=where_filter)
+
+# 关闭连接
+client.close()
 # client = weaviate.connect_to_wcs(
 #     cluster_url="https://d06gk6iwtssfxu50fov2ta.c0.us-west3.gcp.weaviate.cloud",
 #     auth_credentials=AuthApiKey("rwOwzVdNRvhqeCykTGOA9cm2OQv2al6OtI6e"),

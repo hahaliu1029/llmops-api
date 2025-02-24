@@ -194,5 +194,11 @@ class Router:
             view_func=self.document_handler.update_document_enabled,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/delete",
+            methods=["POST"],
+            view_func=self.document_handler.delete_document,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)
