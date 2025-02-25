@@ -119,6 +119,11 @@ class DatasetHandler:
 
         return success_json(res.dump(dataset))
 
+    def delete_dataset(self, dataset_id: UUID):
+        """根据传递的知识库ID删除知识库"""
+        self.dataset_service.delete_dataset(dataset_id)
+        return success_message("删除知识库成功")
+
     def get_datasets_with_page(self):
         """获取知识库分页+搜索列表数据"""
         # 提取请求并校验

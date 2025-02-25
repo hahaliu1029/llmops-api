@@ -163,6 +163,12 @@ class Router:
         )
 
         blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/delete",
+            methods=["POST"],
+            view_func=self.dataset_handler.delete_dataset,
+        )
+
+        blueprint.add_url_rule(
             "/datasets/<uuid:dataset_id>/documents",
             methods=["POST"],
             view_func=self.document_handler.create_documents,

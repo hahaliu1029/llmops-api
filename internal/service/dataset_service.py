@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 from injector import inject
 from dataclasses import dataclass
@@ -9,13 +10,14 @@ from internal.schema.dataset_schema import (
     GetDatasetsWithPageReq,
     HitReq,
 )
-from internal.model import Dataset, Segment, DatasetQuery
-from internal.exception import ValidateErrorException, NotFoundException
+from internal.model import Dataset, Segment, DatasetQuery, AppDatasetJoin
+from internal.exception import ValidateErrorException, NotFoundException, FailException
 from internal.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from pkg.paginator import Paginator
 from sqlalchemy import desc
 from .retrieval_service import RetrievalService
 from internal.lib.helper import datetime_to_timestamp
+from internal.task.dataset_task import delete_dataset
 
 
 @inject
@@ -114,10 +116,6 @@ class DatasetService(BaseService):
         )
 
         return dataset
-
-    def delete_dataset(self):
-        """删除知识库"""
-        pass
 
     def get_dataset(self, dataset_id: UUID) -> Dataset:
         """根据知识库id获取知识库"""
@@ -228,3 +226,27 @@ class DatasetService(BaseService):
             )
 
         return hit_result
+
+    def delete_dataset(self, dataset_id: UUID) -> Dataset:
+        """删除知识库,涵盖知识库底下的所有文档、关键词、片段，和向量数据库中存储的数据"""
+        # todo:等待授权认证模块完成后再进行开发
+        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
+
+        # 检测知识库是否存在并校验
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise NotFoundException("知识库不存在")
+
+        try:
+            # 删除知识库基础记录以及知识库和应用关联的记录
+            self.delete(dataset)
+            with self.db.auto_commit():
+                self.db.session.query(AppDatasetJoin).filter(
+                    AppDatasetJoin.dataset_id == dataset_id
+                ).delete()
+
+            # 调用异步任务执行后续操作
+            delete_dataset.delay(dataset_id)
+        except Exception as e:
+            logging.error(f"删除知识库失败, dataset_id: {dataset_id}, error: {str(e)}")
+            raise FailException("删除知识库失败")
