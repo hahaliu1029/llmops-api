@@ -174,7 +174,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY0NTY3O
 
 - **接口说明**：获取应用的调试长记忆，该接口会返回当前应用的长记忆信息, 如果该应用并没有开启长记忆，则会抛出错误信息。
 
-- **接口信息**: `授权` + `GET:/api/apps/:app_id/long-term-memory`
+- **接口信息**: `授权` + `GET:/api/apps/:app_id/summary`
 
 - **请求参数**：
 
@@ -184,27 +184,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY0NTY3O
 
 - **响应参数**：
 
-| 参数名称 | 参数类型 | 参数说明 | | |
-| --- | --- | --- | --- | ---|
-| id | uuid | 应用 id | | |
-| name | string | 应用名称 | | |
-| icon | string | 应用图标 | | |
-| description | string | 应用描述 | | |
-| published_app_config_id | uuid | 已发布应用配置 id，如果不存在则为 null | | |
-| drafted_app_config_id | uuid | 草稿应用配置 id，如果不存在则为 null | | |
-| debug_conversation_id | uuid | 调试会话 id，如果不存在则为 null | | |
-| published_app_config/drafted_app_config | json | 应用配置信息,涵盖草稿配置、已发布配置，如果没有则为 null，两个配置的变量信息一致 | | |
-| | 字段名称 | 字段类型 | 字段说明 | |
-| | id | uuid | 配置 id | |
-| | model_config | json | 模型配置 | |
-| | | dialog_round | int | 携带上下文轮数，类型为非负整型 |
-| | memory_mode | string | 记忆模式，涵盖 `long_term_memory(长记忆)` 和 `none(无记忆)` 两种 |
-| | status | string | 应用配置配置状态，涵盖 `drafted(草稿)` 和 `published(已发布)` 两种 |
-| | created_at | int | 应用配置创建时间 | |
-| | updated_at | int | 应用配置更新时间 | |
-| updated_at | int | 更新时间 | | |
-| created_at | int | 创建时间 | | |
-||||||
+| 参数名称 | 参数类型 | 参数说明 |
+| --- | --- | --- |
+| summary | string | 该应用最新调试会话的长记忆内容。 |
 
 - **响应示例**：
 
@@ -212,45 +194,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY0NTY3O
 {
     "code": "success",
     "data": {
-        "icon": "https://a.com/111.png",
-        "id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "name": "LLMOps知识库",
-        "description": "这是专门用来存LLMOps的知识库",
-        "published_app_config_id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "drafted_app_config_id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "debug_conversation_id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "published_app_config": {
-            "id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-            "model_config": {
-                "dialog_round": 3
-            },
-            "memory_mode": "long_term_memory",
-            "status": "published",
-            "created_at": 1713105994,
-            "updated_at": 1713106758
-        },
-        "drafted_app_config": {
-            "id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-            "model_config": {
-                "dialog_round": 3
-            },
-            "memory_mode": "long_term_memory",
-            "status": "drafted",
-            "created_at": 1713105994,
-            "updated_at": 1713106758
-        },
-        "updated_at": 1713106758,
-        "created_at": 1713105994
+        "summary": "人类自我介绍为慕小课，并要求人工智能解释LLM（大型语言模型）的概念。人工智能将LLM描述为一种基于深度学习的模型，通常建立在Transformer架构上，用于自然语言处理任务。LLM经历了一个预训练阶段，在那里他们从大量的文本数据中学习语言结构，比如维基百科的文章和书籍。它们利用自我注意机制来有效地处理长程依赖关系。经过预训练后，LLM可以针对特定的应用程序进行微调，使其功能适应文本生成、理解和分类等任务。LLM由于其多功能性和强大的语言理解和生成能力，被广泛应用于虚拟助理、翻译、情绪分析、医疗保健、金融等领域，代表了自然语言处理的前沿技术。"
     },
     "message": ""
 }
+
 ```
 
 ### 1.4 [todo]更新应用调试长记忆
 
 - **接口说明**：更新应用的调试长记忆，该接口会更新当前应用的长记忆信息, 如果该应用并没有开启长记忆，则会抛出错误信息。
 
-- **接口信息**: `授权` + `POST:/apps/:app_id/long-term-memory`
+- **接口信息**: `授权` + `POST:/apps/:app_id/summary`
 
 - **请求参数**：
 
@@ -279,9 +234,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY0NTY3O
 
 ### 1.5 [todo]应用调试对话
 
-- **接口说明**：用于在编排 AI 应用时进行 debug 调试，如果当前应用没有草稿配置，则使用发布配置进行调试，如果有草稿配置则以草稿配置信息进行调试。
+- **接口说明**：用于在编排 AI 应用时进行 debug 调试，在后端会根据草稿配置创建特定的 Agent 从而执行对应的调试信息，该接口为 流式事件响应，会逐个输出 Agent 在运行过程中调用的步骤，涵盖：长期记忆召回、知识库检索、智能体推理/观察、工具调用、LLM消息生成、审核、结束响应等，该接口并非最终版，会随着后续多 LLM 以及多模态 LLM 的接入进行不断扩展。
 
-- **接口信息**: `授权` + `POST:/apps/:app_id/debug`
+- **接口信息**: `授权` + `POST:/apps/:app_id/conversations`
 
 - **请求参数**：
 
@@ -298,36 +253,28 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY0NTY3O
 }
 ```
 
-- **响应参数**：
+- **流式事件参数**：
 
-| 参数名称 | 参数类型 | 参数说明 | 
-| --- | --- | --- |
-| id | uuid | 响应消息的 id |
-| conversation_id | uuid | 消息关联会话的 id |
-| query | string | 用户输入的 query 信息 |
-| answer | string | AI 应用返回的回答信息 |
-| answer_tokens | int | 生成消耗的token数 |
-| response_latency | float | 响应延迟时间, 单位为毫秒 |
-| created_at | int | 消息创建时间 |
-| updated_at | int | 消息更新时间 |
+| 参数名称 | 参数类型 | 参数说明 | |
+| --- | --- | --- |--- |
+| event | str| 流式事件的名称，例如：agent_thought(Agent推理)、agent_message(Agent消息)、agent_action(Agent行动/执行工具)、dataset_retrieval(知识库检索)、done(流式事件停止) 等 ||
+| data | dict| 流式事件数据，类型为字典，记录当前传递的事件的相关信息||
+| | id | uuid | 当前观察/Agent 步骤记录的 id，如果传递的多次流式事件属于同一个步骤则 id 一致，格式为 uuid。|
+| | conversation_id | uuid | 该次流式事件/Agent 步骤归属的会话 id，类型为 uuid。|
+| | message_id | uuid | 该次流式事件/Agent 步骤归属的消息 id，类型为 uuid。|
+| | task_id | uuid |该次流式事件归属的任务 id，该参数用于中断指定的流式事件，当执行该子线程的时候，会在缓存中添加对应的 key，中断流式响应时，会在缓存中删除该 key，从而结束整个流式事件响应。|
+| | thought | string | Agent 在当前流式事件下的推理内容，类型为字符串。|
+| | observation | string | Agent 观察的内容，一般是工具执行后的结果、知识库的检索结果，类型是字符串，该字段并非最终字段，后续会随着插件功能的集成增多进行相应的调整。|
+| | answer | str | Agent 返回的文本答案输出，类型为字符串 |
+| | latency | float | 步骤的执行耗时，单位为毫秒，类型为浮点型 |
+| | created_at | int | 步骤创建时间，类型为时间戳 |
 
 - **响应示例**:
 
 ```json
-{
-    "code": "success",
-    "data": {
-        "id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "conversation_id": "c0759ca8-2d35-4480-83a8-1f41f29d1401",
-        "query": "你好",
-        "answer": "你好，我是AI助手",
-        "answer_tokens": 3,
-        "response_latency": 0.1,
-        "created_at": 1713105994,
-        "updated_at": 1713106758
-    },
-    "message": ""
-}
+event: agent_message
+data: {"id": "1550b71a-1444-47ed-a59d-c2f080fbae94", "conversation_id": "2d7d3e3f-95c9-4d9d-ba9c-9daaf09cc8a8", "task_id": "5e7834dc-bbca-4ee5-9591-8f297f5acded", "thought": "", "observation": "", "answer":"LLM 即 Large Language Model，大语言模型，是一种基于深度学习的自然语言处理模型，具有很高的语言理解和生成能力，能够处理各式各样的自然语言任务，例如文本生成、问答、翻译、摘要等。它通过在大量的文本数据上进行训练，学习到语言的模式、结构和语义知识。", "latency":8541, "created_at":1714053834}
+
 ```
 
 ### 1.6 [todo]获取应用调试历史对话列表

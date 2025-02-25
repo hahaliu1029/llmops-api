@@ -98,17 +98,17 @@ class SuggestedQuestions(BaseModel):
     questions: list[str] = Field(description="建议问题列表，类型为字符串数组")
 
 
-# class InvokeFrom(str, Enum):
-#     """会话调用来源"""
+class InvokeFrom(str, Enum):
+    """会话调用来源"""
 
-#     SERVICE_API = "service_api"  # 开放api服务调用
-#     WEB_APP = "web_app"  # web应用
-#     DEBUGGER = "debugger"  # 调试页面
+    SERVICE_API = "service_api"  # 开放api服务调用
+    WEB_APP = "web_app"  # web应用
+    DEBUGGER = "debugger"  # 调试页面
 
 
-# class MessageStatus(str, Enum):
-#     """会话状态"""
+class MessageStatus(str, Enum):
+    """会话状态"""
 
-#     NORMAL = "normal"  # 正常
-#     STOP = "stop"  # 停止
-#     ERROR = "error"  # 出错
+    NORMAL = "normal"  # 正常
+    STOP = "stop"  # 停止
+    ERROR = "error"  # 出错
