@@ -84,3 +84,8 @@ class SegmentHandler:
         self.segment_service.update_segment(dataset_id, document_id, segment_id, req)
 
         return success_message("更新文档片段成功")
+
+    def delete_segment(self, dataset_id: UUID, document_id: UUID, segment_id: UUID):
+        """删除指定知识库文档的指定片段信息"""
+        self.segment_service.delete_segment(dataset_id, document_id, segment_id)
+        return success_message("删除文档片段成功")

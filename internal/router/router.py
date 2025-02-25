@@ -147,6 +147,11 @@ class Router:
         )
 
         blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/queries",
+            view_func=self.dataset_handler.get_dataset_queries,
+        )
+
+        blueprint.add_url_rule(
             "/datasets/<uuid:dataset_id>",
             methods=["POST"],
             view_func=self.dataset_handler.update_dataset,
@@ -231,8 +236,9 @@ class Router:
         )
 
         blueprint.add_url_rule(
-            "/datasets/<uuid:dataset_id>/queries",
-            view_func=self.dataset_handler.get_dataset_queries,
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/delete",
+            methods=["POST"],
+            view_func=self.segment_handler.delete_segment,
         )
 
         # 3. 注册蓝图
