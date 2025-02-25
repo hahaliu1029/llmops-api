@@ -7,6 +7,8 @@ from internal.schema.dataset_schema import (
     UpdateDatasetReq,
     GetDatasetsWithPageReq,
     GetDatasetsWithPageResp,
+    HitReq,
+    GetDatasetQueriesResp,
 )
 from flask import request
 from pkg.response import validate_error_json, success_message, success_json
@@ -62,47 +64,23 @@ class DatasetHandler:
         # )
 
     def hit(self, dataset_id: UUID):
-        from weaviate.classes.query import Filter
+        """根据传递的知识库id+检索参数进行召回测试"""
+        # 提取数据并校验
+        req = HitReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
 
-        query = "关于拓扑的相关生成内容有哪些？"
-        retriever = self.vector_database_service.vector_store.as_retriever(
-            search_type="mmr",
-            search_kwargs={
-                "k": 10,
-                "filters": Filter.all_of(
-                    [
-                        Filter.by_property("segment_id").equal(
-                            "f3d1c9aa-7606-4a43-b6d3-7888ac3dc022"
-                        ),
-                        # Filter.by_property("segment_enabled").equal(True),
-                        # Filter.any_of(
-                        #     [
-                        #         Filter.by_property("dataset_id").equal(
-                        #             "bd3b17ef-b39b-4a64-af86-934494234379"
-                        #         ),
-                        #         Filter.by_property("dataset_id").equal(
-                        #             "bd3b17ef-b39b-4a64-af86-934494234378"
-                        #         ),
-                        #     ]
-                        # ),
-                    ]
-                ),
-            },
-        )
+        # 调用服务执行检索策略
+        hit_result = self.dataset_service.hit(dataset_id, req)
 
-        documents = retriever.invoke(query)
+        return success_json(hit_result)
 
-        return success_json(
-            {
-                "ducuments": [
-                    {
-                        "page_content": document.page_content,
-                        "metadata": document.metadata,
-                    }
-                    for document in documents
-                ]
-            }
-        )
+    def get_dataset_queries(self, dataset_id: UUID):
+        """根据传递的知识库id获取最近的10条检索记录"""
+        dataset_queries = self.dataset_service.get_dataset_queries(dataset_id)
+        resp = GetDatasetQueriesResp(many=True)
+
+        return success_json(resp.dump(dataset_queries))
 
     def create_dataset(self):
         """创建知识库"""

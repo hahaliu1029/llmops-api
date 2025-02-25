@@ -230,5 +230,10 @@ class Router:
             view_func=self.segment_handler.update_segment,
         )
 
+        blueprint.add_url_rule(
+            "/datasets/<uuid:dataset_id>/queries",
+            view_func=self.dataset_handler.get_dataset_queries,
+        )
+
         # 3. 注册蓝图
         app.register_blueprint(blueprint)
