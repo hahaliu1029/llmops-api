@@ -8,7 +8,6 @@ import uuid
 from dataclasses import dataclass
 from flask import request
 from injector import inject
-from torch import chunk
 
 from internal.schema.app_schema import CompletionReq
 from pkg.response import (
@@ -19,7 +18,12 @@ from pkg.response import (
     compact_generate_response,
 )
 from internal.exception import FailException
-from internal.service import AppService, VectorDatabaseService
+from internal.service import (
+    AppService,
+    VectorDatabaseService,
+    ConversationService,
+    EmbeddingsService,
+)
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
@@ -48,6 +52,8 @@ class AppHandler:
     vector_database_service: VectorDatabaseService
     api_tool_service: ApiToolService
     builtin_provider_manager: BuiltInProviderManager
+    embeddings_service: EmbeddingsService
+    conversation_service: ConversationService
 
     def create_app(self):
         """创建应用"""
@@ -55,8 +61,14 @@ class AppHandler:
         return success_message(f"创建应用成功，应用ID为{app.id}")
 
     def ping(self):
-        demo_task.delay(uuid.uuid4())
-        return self.api_tool_service.api_tool_invoke()
+        human_message = "我是aa，你是谁"
+        ai_message = """
+            你好，aa！我是Grok 3，由xAI创建。我是一个AI助手，旨在帮助回答你的问题、提供信息或者只是聊聊天。你今天过得怎么样？有什么特别的事情想聊聊吗？"""
+        old_summary = "人类询问AI关于LLM和Agent的概念。AI解释了LLM（大型语言模型）是一种通过大量文本数据训练出来的智能系统，能够理解和生成自然语言，擅长处理文字相关的任务。Agent（智能代理）则是LLM的升级版，不仅能够回答问题，还能执行搜索信息、分析数据等自动化任务，具有更强的行动能力。AI进一步说明，LLM是语言能力的核心，而Agent则将这种能力与行动力结合，使其更加实用"
+        summary = self.conversation_service.summary(
+            human_message, ai_message, old_summary
+        )
+        return success_json({"summary": summary})
         # providers = self.provider_factory.get_provider_entities()
         # return success_json()
         # return {"ping": "pong"}
