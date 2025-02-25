@@ -11,6 +11,7 @@ from .response import (
     validate_error_json,
     unauthorized_message,
     forbidden_message,
+    compact_generate_response,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "validate_error_json",
     "unauthorized_message",
     "forbidden_message",
+    "compact_generate_response",
 ]
