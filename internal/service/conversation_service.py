@@ -11,6 +11,8 @@ from internal.entity.conversation_entity import (
     SUMMARIZER_TEMPLATE,
     CONVERSATION_NAME_TEMPLATE,
     ConversationInfo,
+    SUGGESTED_QUESTIONS_TEMPLATE,
+    SuggestedQuestions,
 )
 
 
@@ -95,3 +97,45 @@ class ConversationService(BaseService):
             name = name[:75] + "..."
 
         return name
+
+    @classmethod
+    def generate_suggested_questions(cls, histories: str) -> list[str]:
+        """根据传递的历史信息生成最多不超过3个的建议问题"""
+        # 创建prompt
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", SUGGESTED_QUESTIONS_TEMPLATE), ("human", "{histories}")]
+        )
+
+        # 构建大语言模型实例，并将大语言模型温度调低，降低幻觉的概率
+        llm = ChatOpenAI(
+            # temperature=0,
+            # model="gpt-4o-mini",
+            # openai_api_key=os.getenv("OPENAI_API_KEY"),
+            # openai_api_base=os.getenv("OPENAI_API_BASE"),
+            model="moonshot-v1-8k",
+            temperature=0,
+            openai_api_key=os.getenv("KIMI_API_KEY"),
+            openai_api_base=os.getenv("KIMI_API_BASE"),
+        )
+        structured_llm = llm.with_structured_output(SuggestedQuestions)
+
+        # 构建链应用
+        chain = prompt | structured_llm
+
+        # 调用链并获取建议问题列表
+        suggested_questions = chain.invoke({"histories": histories})
+
+        # 提取建议问题列表
+        questions = []
+        try:
+            if suggested_questions and hasattr(suggested_questions, "questions"):
+                questions = suggested_questions.questions
+        except Exception as e:
+            logging.exception(
+                f"提取建议问题列表出错，suggested_questions: {suggested_questions}, 错误信息: {str(e)}"
+            )
+
+        if len(questions) > 3:
+            questions = questions[:3]
+
+        return questions
