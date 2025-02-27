@@ -18,6 +18,7 @@ from langchain_community.document_loaders import (
     UnstructuredPowerPointLoader,
     UnstructuredXMLLoader,
     UnstructuredFileLoader,
+    UnstructuredWordDocumentLoader,
     TextLoader,
 )
 
@@ -89,6 +90,8 @@ class FileExtractor:
             loader = UnstructuredPowerPointLoader(file_path)
         elif file_extension == ".xml":
             loader = UnstructuredXMLLoader(file_path)
+        elif file_extension in [".doc", ".docx"]:
+            loader = UnstructuredWordDocumentLoader(file_path, mode="paged")
         else:
             loader = (
                 UnstructuredFileLoader(file_path)

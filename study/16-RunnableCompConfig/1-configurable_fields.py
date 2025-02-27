@@ -5,14 +5,14 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import ConfigurableField
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(override=True)
 
 prompt = PromptTemplate.from_template("请生成一个小于{x}的随机整数")
 
 llm = ChatOpenAI(
-    model="deepseek-chat",
-    openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
-    openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
+    model="cursor-3-5-sonnet-20240620",
+    openai_api_key=os.getenv("YUNWU_API_KEY"),
+    openai_api_base=os.getenv("YUNWU_API_BASE"),
 ).configurable_fields(
     temperature=ConfigurableField(
         id="llm_temperature",
