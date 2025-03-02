@@ -2,6 +2,7 @@ import os
 from typing import Any
 from injector import inject
 from dataclasses import dataclass
+from internal.exception import UnauthorizedException
 import jwt
 
 
@@ -23,8 +24,8 @@ class JwtService:
         try:
             return jwt.decode(token, secret_key, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
-            raise ValueError("Token已过期, 请重新登录")
+            raise UnauthorizedException("Token已过期, 请重新登录")
         except jwt.InvalidTokenError:
-            raise ValueError("Token无效，请重新登录")
+            raise UnauthorizedException("Token无效，请重新登录")
         except Exception as e:
-            raise e
+            raise UnauthorizedException(str(e))
