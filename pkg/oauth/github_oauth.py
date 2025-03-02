@@ -29,6 +29,7 @@ class GithubOAuth(OAuth):
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "code": code,
+            "scope": "user:email",
             "redirect_uri": self.redirect_uri,
         }
         headers = {"Accept": "application/json"}
@@ -60,10 +61,16 @@ class GithubOAuth(OAuth):
         # 获取用户邮箱信息
         email_response = requests.get(
             self._EMAINL_INFO_URL,
-            headers=headers,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
         )
         # email_response.raise_for_status()
         email_info = email_response.json()
+        print("email_info")
+        print(email_info)
 
         # 提取邮箱
         primary_email = None

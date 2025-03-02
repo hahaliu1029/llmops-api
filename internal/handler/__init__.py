@@ -6,6 +6,8 @@ from .dataset_handler import DatasetHandler
 from .document_handler import DocumentHandler
 from .segment_handler import SegmentHandler
 from .oauth_handler import OAuthHandler
+from .account_handler import AccountHandler
+from .auth_handler import AuthHandler
 
 __all__ = [
     "AppHandler",
@@ -16,4 +18,6 @@ __all__ = [
     "DocumentHandler",
     "SegmentHandler",
     "OAuthHandler",
+    "AccountHandler",
+    "AuthHandler",
 ]

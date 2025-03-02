@@ -51,8 +51,6 @@ class OAuthService(BaseService):
 
         # 根据code从第三方登录服务中获取access_token
         oauth_access_token = oauth.get_access_token(code)
-        print("1111111111111111111")
-        print(oauth_access_token)
 
         # 根据获取到的token提取user_info信息
         oauth_user_info = oauth.get_user_info(oauth_access_token)
