@@ -22,6 +22,7 @@ from pkg.paginator import PageModel
 from internal.core.file_extractor import FileExtractor
 from pkg.sqlalchemy import SQLAlchemy
 from internal.model import UploadFile
+from flask_login import login_required
 
 
 @inject
@@ -124,6 +125,7 @@ class DatasetHandler:
         self.dataset_service.delete_dataset(dataset_id)
         return success_message("删除知识库成功")
 
+    @login_required
     def get_datasets_with_page(self):
         """获取知识库分页+搜索列表数据"""
         # 提取请求并校验

@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_login import LoginManager
 
 from internal.exception.exception import CustomException
 from internal.router import Router
@@ -12,6 +13,7 @@ from config import Config
 from pkg.response.http_code import HttpCode
 from pkg.sqlalchemy import SQLAlchemy
 from internal.model.app import App
+from internal.middleware import Middleware
 
 
 class Http(Flask):
@@ -23,6 +25,8 @@ class Http(Flask):
         conf: Config,
         db: SQLAlchemy,
         migrate: Migrate,
+        middleware: Middleware,
+        login_manager: LoginManager,
         router: Router,
         **kwargs
     ):
@@ -41,6 +45,7 @@ class Http(Flask):
         logging_extension.init_app(self)
         redis_extension.init_app(self)
         celery_extension.init_app(self)
+        login_manager.init_app(self)
         # with self.app_context():  # 创建上下文
         #     _ = App()
         #     db.create_all()
@@ -51,6 +56,10 @@ class Http(Flask):
             resources={r"/*": {"origins": "*"}},
             supports_credentials=True,
         )
+
+        # 注册中间件
+        login_manager.request_loader(middleware.request_loader)
+
         router.register_router(self)
 
     def _register_error_handler(self, error: Exception):
