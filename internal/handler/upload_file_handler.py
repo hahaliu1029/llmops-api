@@ -5,6 +5,7 @@ from internal.schema.upload_file_schema import (
     UploadFileResp,
     UploadImageReq,
 )
+from flask_login import login_required, current_user
 from pkg.response import validate_error_json, success_json
 from internal.service import UploadFileService, CosService
 
@@ -17,6 +18,7 @@ class UploadFileHandler:
     cos_service: CosService
     upload_file_service: UploadFileService
 
+    @login_required
     def upload_file(self):
         """上传文件/文档"""
         # 构建请求并校验
@@ -24,11 +26,12 @@ class UploadFileHandler:
         if not req.validate():
             return validate_error_json(req.errors)
         # 调用服务上传文件并获取记录
-        upload_file = self.cos_service.upload_file(req.file.data)
+        upload_file = self.cos_service.upload_file(req.file.data, account=current_user)
         # 构建响应并返回
         res = UploadFileResp()
         return success_json(res.dump(upload_file))
 
+    @login_required
     def upload_image(self):
         """上传图片"""
         # 构建请求并校验
@@ -37,7 +40,9 @@ class UploadFileHandler:
         if not req.validate():
             return validate_error_json(req.errors)
         # 调用服务上传图片并获取记录
-        upload_file = self.cos_service.upload_file(req.file.data, only_image=True)
+        upload_file = self.cos_service.upload_file(
+            req.file.data, only_image=True, account=current_user
+        )
 
         # 获取图片的实际url地址
         image_url = self.cos_service.get_file_url(upload_file.key)

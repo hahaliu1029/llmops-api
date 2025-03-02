@@ -9,7 +9,7 @@ from .base_service import BaseService
 from pkg.sqlalchemy import SQLAlchemy
 from internal.entity.dataset_entity import RetrievalSource, RetrievalStrategy
 from langchain_core.documents import Document as LC_Document
-from internal.model import Dataset, DatasetQuery
+from internal.model import Dataset, DatasetQuery, Account
 from internal.exception import NotFoundException
 from langchain.retrievers import EnsembleRetriever
 from .vector_database_service import VectorDatabaseService
@@ -33,15 +33,14 @@ class RetrievalService(BaseService):
         k: int = 4,
         score: float = 0.0,
         retrieval_source: str = RetrievalSource.HIT_TESTING,
+        account: Account = None,
     ) -> list[LC_Document]:
         """根据传递的query+知识库列表进行检索， 并返回检索的文档+得分数据（如果检索策略为全文检索，则得分为0）"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 提取知识库列表并校验权限，同时更新知识库id
         datasets = (
             self.db.session.query(Dataset)
-            .filter(Dataset.id.in_(dataset_ids), Dataset.account_id == account_id)
+            .filter(Dataset.id.in_(dataset_ids), Dataset.account_id == account.id)
             .all()
         )
 
@@ -88,7 +87,7 @@ class RetrievalService(BaseService):
                 source=retrieval_source,
                 # todo:等待APP配置模块完成后进行开发
                 source_app_id=None,
-                created_by=account_id,
+                created_by=account.id,
             )
 
         # 批量更新文档的命中次数，涵盖了构建+执行语句

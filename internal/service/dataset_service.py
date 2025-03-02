@@ -10,7 +10,7 @@ from internal.schema.dataset_schema import (
     GetDatasetsWithPageReq,
     HitReq,
 )
-from internal.model import Dataset, Segment, DatasetQuery, AppDatasetJoin
+from internal.model import Dataset, Segment, DatasetQuery, AppDatasetJoin, Account
 from internal.exception import ValidateErrorException, NotFoundException, FailException
 from internal.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from pkg.paginator import Paginator
@@ -28,15 +28,13 @@ class DatasetService(BaseService):
     db: SQLAlchemy
     retrieval_service: RetrievalService
 
-    def create_dataset(self, req: CreateDatasetReq) -> Dataset:
+    def create_dataset(self, req: CreateDatasetReq, account: Account) -> Dataset:
         """创建知识库"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 检测该账号下知识库名称是否重复
         dataset = (
             self.db.session.query(Dataset)
-            .filter_by(name=req.name.data, account_id=account_id)
+            .filter_by(name=req.name.data, account_id=account.id)
             .one_or_none()
         )
         if dataset:
@@ -51,20 +49,20 @@ class DatasetService(BaseService):
         # 创建知识库并返回
         return self.create(
             Dataset,
-            account_id=account_id,
+            account_id=account.id,
             name=req.name.data,
             icon=req.icon.data,
             description=req.description.data,
         )
 
-    def get_dataset_queries(self, dataset_id: UUID) -> list[DatasetQuery]:
+    def get_dataset_queries(
+        self, dataset_id: UUID, account: Account
+    ) -> list[DatasetQuery]:
         """根据知识库id获取最近10条检索记录"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 检测知识库是否存在
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             raise NotFoundException("知识库不存在")
 
         # 获取最近10条检索记录
@@ -78,14 +76,14 @@ class DatasetService(BaseService):
 
         return dataset_queries
 
-    def update_dataset(self, dataset_id: UUID, req: UpdateDatasetReq) -> Dataset:
+    def update_dataset(
+        self, dataset_id: UUID, req: UpdateDatasetReq, account: Account
+    ) -> Dataset:
         """根据传递的知识库id+信息更新知识库"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 检测知识库是否存在
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             raise NotFoundException("知识库不存在")
 
         # 检测修改后的知识库名称是否重复
@@ -93,7 +91,7 @@ class DatasetService(BaseService):
             self.db.session.query(Dataset)
             .filter(
                 Dataset.name == req.name.data,
-                Dataset.account_id == account_id,
+                Dataset.account_id == account.id,
                 Dataset.id != dataset_id,
             )
             .one_or_none()
@@ -117,29 +115,25 @@ class DatasetService(BaseService):
 
         return dataset
 
-    def get_dataset(self, dataset_id: UUID) -> Dataset:
+    def get_dataset(self, dataset_id: UUID, account: Account) -> Dataset:
         """根据知识库id获取知识库"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             raise NotFoundException("知识库不存在")
 
         return dataset
 
     def get_datasets_with_page(
-        self, req: GetDatasetsWithPageReq
+        self, req: GetDatasetsWithPageReq, account: Account
     ) -> tuple[list[Dataset], Paginator]:
         """获取知识库分页+搜索列表数据"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 构建查询条件
         paginator = Paginator(db=self.db, req=req)
 
         # 构建筛选器
-        filters = [Dataset.account_id == account_id]
+        filters = [Dataset.account_id == account.id]
 
         if req.search_word.data:
             filters.append(Dataset.name.ilike(f"%{req.search_word.data}%"))
@@ -151,19 +145,17 @@ class DatasetService(BaseService):
 
         return datasets, paginator
 
-    def hit(self, dataset_id: UUID, req: HitReq) -> list[dict]:
+    def hit(self, dataset_id: UUID, req: HitReq, account: Account) -> list[dict]:
         """根据传递的知识库id+请求进行召回测试"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 检测知识库是否存在并校验
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             raise NotFoundException("知识库不存在")
 
         # 调用检索服务进行检索
         lc_documents = self.retrieval_service.search_in_datasets(
-            dataset_ids=[dataset_id], **req.data
+            dataset_ids=[dataset_id], **req.data, account=account
         )
 
         lc_documents_dict = {
@@ -227,14 +219,12 @@ class DatasetService(BaseService):
 
         return hit_result
 
-    def delete_dataset(self, dataset_id: UUID) -> Dataset:
+    def delete_dataset(self, dataset_id: UUID, account: Account) -> Dataset:
         """删除知识库,涵盖知识库底下的所有文档、关键词、片段，和向量数据库中存储的数据"""
-        # todo:等待授权认证模块完成后再进行开发
-        account_id = "15fd2840-e294-4413-83d0-e083e9a7bc6b"
 
         # 检测知识库是否存在并校验
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             raise NotFoundException("知识库不存在")
 
         try:
