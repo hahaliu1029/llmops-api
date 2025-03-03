@@ -692,13 +692,13 @@ class AppService(BaseService):
         )
         thread.start()
 
-    # def stop_debug_chat(self, app_id: UUID, task_id: UUID, account: Account) -> None:
-    #     """根据传递的应用id+任务id+账号，停止某个应用的调试会话，中断流式事件"""
-    #     # 1.获取应用信息并校验权限
-    #     self.get_app(app_id, account)
+    def stop_debug_chat(self, app_id: UUID, task_id: UUID, account: Account) -> None:
+        """根据传递的应用id+任务id+账号，停止某个应用的调试会话，中断流式事件"""
+        # 1.获取应用信息并校验权限
+        self.get_app(app_id, account)
 
-    #     # 2.调用智能体队列管理器停止特定任务
-    #     AgentQueueManager.set_stop_flag(task_id, InvokeFrom.DEBUGGER, account.id)
+        # 2.调用智能体队列管理器停止特定任务
+        AgentQueueManager.set_stop_flag(task_id, InvokeFrom.DEBUGGER, account.id)
 
     # def get_debug_conversation_messages_with_page(
     #     self,
