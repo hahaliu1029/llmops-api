@@ -39,27 +39,63 @@ class Router:
         # 2. 将url与对应控制器方法绑定
         blueprint.add_url_rule("/ping", view_func=self.app_handler.ping)
         blueprint.add_url_rule(
-            "/apps/<uuid:app_id>/debug",
-            methods=["POST"],
-            view_func=self.app_handler.debug,
+            "/apps", methods=["POST"], view_func=self.app_handler.create_app
         )
-        # blueprint.add_url_rule(
-        #     "/app", methods=["POST"], view_func=self.app_handler.create_app
-        # )
 
-        # blueprint.add_url_rule(
-        #     "/app/<uuid:id>", methods=["GET"], view_func=self.app_handler.get_app
-        # )
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>", methods=["GET"], view_func=self.app_handler.get_app
+        )
 
-        # blueprint.add_url_rule(
-        #     "/app/<uuid:id>", methods=["POST"], view_func=self.app_handler.update_app
-        # )
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/draft-app-config",
+            view_func=self.app_handler.get_draft_app_config,
+        )
 
-        # blueprint.add_url_rule(
-        #     "/app/<uuid:id>/delete",
-        #     methods=["POST"],
-        #     view_func=self.app_handler.delete_app,
-        # )
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/draft-app-config",
+            methods=["POST"],
+            view_func=self.app_handler.update_draft_app_config,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/publish",
+            methods=["POST"],
+            view_func=self.app_handler.publish,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/cancel-publish",
+            methods=["POST"],
+            view_func=self.app_handler.cancel_publish,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/publish-histories",
+            view_func=self.app_handler.get_publish_histories_with_page,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/fallback-history",
+            methods=["POST"],
+            view_func=self.app_handler.fallback_history_to_draft,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/summary",
+            view_func=self.app_handler.get_debug_conversation_summary,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/summary",
+            methods=["POST"],
+            view_func=self.app_handler.update_debug_conversation_summary,
+        )
+
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/conversations/delete-debug-conversation",
+            methods=["POST"],
+            view_func=self.app_handler.delete_debug_conversation,
+        )
 
         # 内置插件广场模块
         blueprint.add_url_rule(

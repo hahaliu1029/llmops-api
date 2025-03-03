@@ -1,39 +1,25 @@
-import json
-from queue import Queue
-import os
-from threading import Thread
-from typing import Any, Dict, Generator
 import uuid
 from dataclasses import dataclass
-from flask import request
 from injector import inject
-
-from internal.entity.conversation_entity import InvokeFrom
-from internal.schema.app_schema import CompletionReq
+from internal.schema.app_schema import (
+    CreateAppReq,
+    GetAppResp,
+    GetPublishHistoriesWithPageReq,
+    GetPublishHistoriesWithPageResp,
+    FallbackHistoryToDraftReq,
+    UpdateDebugConversationSummaryReq,
+)
+from pkg.paginator import PageModel
 from pkg.response import (
     success_json,
-    validate_error_json,
     success_message,
-    fail_message,
-    compact_generate_response,
+    validate_error_json,
 )
-from internal.exception import FailException
+from flask import request
+from flask_login import login_required, current_user
 from internal.service import (
     AppService,
-    VectorDatabaseService,
-    ConversationService,
-    EmbeddingsService,
 )
-from langchain_openai import ChatOpenAI
-from langchain_core.runnables import RunnableConfig
-from langchain_core.memory import BaseMemory
-from langchain_core.tracers.schemas import Run
-from internal.service import ApiToolService
-from internal.task.demo_task import demo_task
-from internal.core.tools.builtin_tools.providers import BuiltInProviderManager
-from internal.core.agent.agents import FunctionCallAgent, AgentQueueManager
-from internal.core.agent.entities.agent_entity import AgentConfig
-from redis import Redis
 
 
 @inject
@@ -42,141 +28,119 @@ class AppHandler:
     """应用控制器"""
 
     app_service: AppService
-    vector_database_service: VectorDatabaseService
-    api_tool_service: ApiToolService
-    builtin_provider_manager: BuiltInProviderManager
-    embeddings_service: EmbeddingsService
-    conversation_service: ConversationService
-    redis_client: Redis
 
+    @login_required
     def create_app(self):
-        """创建应用"""
-        app = self.app_service.create_app()
-        return success_message(f"创建应用成功，应用ID为{app.id}")
-
-    def ping(self):
-        from internal.core.agent.agents import FunctionCallAgent
-        from internal.core.agent.entities.agent_entity import AgentConfig
-        from langchain_openai import ChatOpenAI
-
-        agent = FunctionCallAgent(
-            AgentConfig(
-                llm=ChatOpenAI(
-                    model="moonshot-v1-8k",
-                    temperature=0.7,
-                    openai_api_key=os.getenv("KIMI_API_KEY"),
-                    openai_api_base=os.getenv("KIMI_API_BASE"),
-                ),
-                preset_prompt="你是一个老诗人，请根据用户提供的主题来写一首诗",
-            )
-        )
-        state = agent.run("木匠", history=[], long_term_memory="")
-        content = state["messages"][-1].content
-
-        return success_json({"content": content})
-
-    @classmethod
-    def _load_memory_variables(
-        cls, input: Dict[str, Any], config: RunnableConfig
-    ) -> Dict[str, Any]:
-        """加载记忆变量"""
-        # 从config中获取configurable
-        configurable = config.get("configurable", {})
-        configurable_memory = configurable.get("memory", None)
-        if configurable_memory is not None and isinstance(
-            configurable_memory, BaseMemory
-        ):
-            return configurable_memory.load_memory_variables(input)
-        return {"history": []}
-
-    @classmethod
-    def _save_context(cls, run_obj: Run, config: RunnableConfig) -> None:
-        """保存上下文"""
-        # 从config中获取configurable
-        configurable = config.get("configurable", {})
-        configurable_memory = configurable.get("memory", None)
-        print(run_obj.inputs)
-        print(run_obj.outputs)
-        if configurable_memory is not None and isinstance(
-            configurable_memory, BaseMemory
-        ):
-            configurable_memory.save_context(run_obj.inputs, run_obj.outputs)
-
-    def debug(self, app_id: uuid.UUID):
-        """应用会话调试聊天接口，该接口为流式事件输出"""
-        # 1. 获取输入，POST
-        req = CompletionReq()
+        """调用服务创建新的APP记录"""
+        # 1.提取请求并校验
+        req = CreateAppReq()
         if not req.validate():
             return validate_error_json(req.errors)
 
-        query = req.query.data
+        # 2.调用服务创建应用信息
+        app = self.app_service.create_app(req, current_user)
 
-        # 创建tools工具列表
-        tools = [
-            self.builtin_provider_manager.get_tool("google", "google_serper")(),
-            self.builtin_provider_manager.get_tool("gaode", "gaode_weather")(),
-            self.builtin_provider_manager.get_tool("gaodeip", "gaode_ip")(),
-            self.builtin_provider_manager.get_tool("dalle", "dalle3")(),
-            self.builtin_provider_manager.get_tool("time", "current_time")(),
-            # self.builtin_provider_manager.get_tool(
-            #     "duckduckgo", "duckduckgo_search"
-            # )(),
-            # self.builtin_provider_manager.get_tool(
-            #     "wikipedia", "wikipedia_search"
-            # )(),
-        ]
+        # 3.返回创建成功响应提示
+        return success_json({"id": app.id})
 
-        agent = FunctionCallAgent(
-            AgentConfig(
-                llm=ChatOpenAI(
-                    model="deepseek-chat",
-                    openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
-                    openai_api_base=os.getenv("DEEPSEEK_API_BASE"),
-                ),
-                enable_long_term_memory=True,
-                tools=tools,
-            ),
-            AgentQueueManager(
-                user_id=uuid.uuid4(),
-                task_id=uuid.uuid4(),
-                invoke_from=InvokeFrom.DEBUGGER,
-                redis_client=self.redis_client,
-            ),
+    @login_required
+    def ping(self):
+        pass
+
+    @login_required
+    def get_app(self, app_id: uuid.UUID):
+        """获取应用"""
+        app = self.app_service.get_app(app_id, current_user)
+        resp = GetAppResp()
+        return success_json(resp.dump(app))
+
+    @login_required
+    def get_draft_app_config(self, app_id: uuid.UUID):
+        """根据传递的应用id获取应用的最新草稿配置"""
+        draft_config = self.app_service.get_draft_app_config(app_id, current_user)
+        return success_json(draft_config)
+
+    @login_required
+    def update_draft_app_config(self, app_id: uuid.UUID):
+        """根据传递的应用id+草稿配置更新应用的最新草稿配置"""
+        # 1.获取草稿请求json数据
+        draft_app_config = request.get_json(force=True, silent=True) or {}
+
+        # 2.调用服务更新应用的草稿配置
+        self.app_service.update_draft_app_config(app_id, draft_app_config, current_user)
+
+        return success_message("更新应用草稿配置成功")
+
+    @login_required
+    def publish(self, app_id: uuid.UUID):
+        """根据传递的应用id发布/更新特定的草稿配置信息"""
+        self.app_service.publish_draft_app_config(app_id, current_user)
+        return success_message("发布/更新应用配置成功")
+
+    @login_required
+    def cancel_publish(self, app_id: uuid.UUID):
+        """根据传递的应用id，取消发布指定的应用配置信息"""
+        self.app_service.cancel_publish_app_config(app_id, current_user)
+        return success_message("取消发布应用配置成功")
+
+    @login_required
+    def get_publish_histories_with_page(self, app_id: uuid.UUID):
+        """根据传递的应用id，获取应用发布历史列表"""
+        # 1.获取请求数据并校验
+        req = GetPublishHistoriesWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务获取分页列表数据
+        app_config_versions, paginator = (
+            self.app_service.get_publish_histories_with_page(app_id, req, current_user)
         )
 
-        def stream_event_response() -> Generator:
-            """流式事件响应"""
-            for agent_queue_event in agent.run(query, [], "用户介绍自己叫aaa"):
-                data = {
-                    "id": str(agent_queue_event.id),
-                    "task_id": str(agent_queue_event.task_id),
-                    "event": agent_queue_event.event,
-                    "thought": agent_queue_event.thought,
-                    "observation": agent_queue_event.observation,
-                    "tool": agent_queue_event.tool,
-                    "tool_input": agent_queue_event.tool_input,
-                    "answer": agent_queue_event.answer,
-                    "latency": agent_queue_event.latency,
-                }
-                yield f"event: {agent_queue_event.event}\ndata: {json.dumps(data)}\n\n"
+        # 3.创建响应结构并返回
+        resp = GetPublishHistoriesWithPageResp(many=True)
 
-        # 5. 返回流式事件响应
-        return compact_generate_response(stream_event_response())
+        return success_json(
+            PageModel(list=resp.dump(app_config_versions), paginator=paginator)
+        )
 
-    def get_app(self, id: uuid.UUID):
-        """获取应用"""
-        app = self.app_service.get_app(id)
-        return success_message(f"获取应用成功，应用ID为{app.id}, 应用名称为{app.name}")
+    @login_required
+    def fallback_history_to_draft(self, app_id: uuid.UUID):
+        """根据传递的应用id+历史配置版本id，退回指定版本到草稿中"""
+        # 1.提取数据并校验
+        req = FallbackHistoryToDraftReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
 
-    def update_app(self, id: uuid.UUID):
-        """更新应用"""
-        app = self.app_service.update_app(id)
-        return success_message(f"更新应用成功，应用ID为{app.id}, 应用名称为{app.name}")
+        # 2.调用服务回退指定版本到草稿
+        self.app_service.fallback_history_to_draft(
+            app_id, req.app_config_version_id.data, current_user
+        )
 
-    def delete_app(self, id: uuid.UUID):
-        """删除应用"""
-        try:
-            app = self.app_service.delete_app(id)
-        except Exception as e:
-            return fail_message(f"删除应用失败，应用ID为{id}, 错误信息为{str(e)}")
-        return success_message(f"删除应用成功，应用ID为{app.id}, 应用名称为{app.name}")
+        return success_message("回退历史配置至草稿成功")
+
+    @login_required
+    def get_debug_conversation_summary(self, app_id: uuid.UUID):
+        """根据传递的应用id获取调试会话长期记忆"""
+        summary = self.app_service.get_debug_conversation_summary(app_id, current_user)
+        return success_json({"summary": summary})
+
+    @login_required
+    def update_debug_conversation_summary(self, app_id: uuid.UUID):
+        """根据传递的应用id+摘要信息更新调试会话长期记忆"""
+        # 1.提取数据并校验
+        req = UpdateDebugConversationSummaryReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务更新调试会话长期记忆
+        self.app_service.update_debug_conversation_summary(
+            app_id, req.summary.data, current_user
+        )
+
+        return success_message("更新AI应用长期记忆成功")
+
+    @login_required
+    def delete_debug_conversation(self, app_id: uuid.UUID):
+        """根据传递的应用id，清空该应用的调试会话记录"""
+        self.app_service.delete_debug_conversation(app_id, current_user)
+        return success_message("清空应用调试会话记录成功")

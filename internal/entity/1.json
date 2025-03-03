@@ -1,0 +1,1 @@
+{"model": "gpt-4o-mini", "provider": "openai", "parameters": {"top_p": 0.85, "max_tokens": 8192, "temperature": 0.5, "presence_penalty": 0.2, "frequency_penalty": 0.2}}
