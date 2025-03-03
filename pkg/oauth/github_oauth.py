@@ -29,7 +29,8 @@ class GithubOAuth(OAuth):
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "code": code,
-            "scope": "user:email",
+            "prompt": "consent",
+            # "scope": "user:email",
             "redirect_uri": self.redirect_uri,
         }
         headers = {"Accept": "application/json"}
@@ -38,6 +39,8 @@ class GithubOAuth(OAuth):
         response = requests.post(self._ACCESS_TOKEN_URL, data=data, headers=headers)
         response.raise_for_status()
         resp_json = response.json()
+        print("resp_json11111111111111111111111")
+        print(resp_json)
 
         # 提取access_token对应的数据
         access_token = resp_json.get("access_token")
@@ -64,7 +67,7 @@ class GithubOAuth(OAuth):
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
+                # "X-GitHub-Api-Version": "2022-11-28",
             },
         )
         # email_response.raise_for_status()
