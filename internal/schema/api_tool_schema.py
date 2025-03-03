@@ -55,9 +55,7 @@ class CreateApiToolReq(FlaskForm):
     @classmethod
     def validate_headers(cls, form, field):
         """校验headers字段请求的数据是否正确，涵盖列表校验，列表元素校验"""
-        print("field.data", field.data)
         for header in field.data:
-            print("header", header)
             if not isinstance(header, dict):
                 raise ValidationError("headers字段元素必须是字典类型")
             if "key" not in header or "value" not in header:
@@ -97,9 +95,7 @@ class UpdateApiToolProviderReq(FlaskForm):
     @classmethod
     def validate_headers(cls, form, field):
         """校验headers字段请求的数据是否正确，涵盖列表校验，列表元素校验"""
-        print("field.data", field.data)
         for header in field.data:
-            print("header", header)
             if not isinstance(header, dict):
                 raise ValidationError("headers字段元素必须是字典类型")
             if "key" not in header or "value" not in header:

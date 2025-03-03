@@ -13,7 +13,6 @@ class ListField(Field):
 
     def _value(self):
         """获取字段值"""
-        print("self.data", self.data)
         return self.data if self.data is not None else []
 
 

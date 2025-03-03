@@ -32,8 +32,6 @@ class Http(Flask):
     ):
         super().__init__(*args, **kwargs)
 
-        print("Http init")
-
         # 配置
         self.config.from_object(conf)
 

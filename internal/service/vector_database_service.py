@@ -47,11 +47,6 @@ class VectorDatabaseService:
         """获取向量数据库服务的检索器"""
         return self.vector_store.as_retriever()
 
-    @classmethod
-    def combine_documents(cls, documents: List[Document]) -> str:
-        """将对应的文档列表使用换行符进行合并"""
-        return "\n\n".join([document.page_content for document in documents])
-
     @property
     def collection(self) -> Collection:
         """获取向量数据库服务的集合名"""

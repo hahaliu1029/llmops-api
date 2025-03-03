@@ -164,7 +164,6 @@ class SegmentService(BaseService):
 
         # 获取文档并校验权限
         document = self.get(Document, document_id)
-        print(document.account_id)
         if (
             document is None
             or document.dataset_id != dataset_id

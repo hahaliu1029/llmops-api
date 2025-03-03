@@ -97,6 +97,12 @@ class Router:
             view_func=self.app_handler.delete_debug_conversation,
         )
 
+        blueprint.add_url_rule(
+            "/apps/<uuid:app_id>/conversations",
+            methods=["POST"],
+            view_func=self.app_handler.debug_chat,
+        )
+
         # 内置插件广场模块
         blueprint.add_url_rule(
             "/builtin-tools", view_func=self.builtin_tool_handler.get_builtin_tools

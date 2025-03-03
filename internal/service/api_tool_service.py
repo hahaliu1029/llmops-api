@@ -154,7 +154,6 @@ class ApiToolService(BaseService):
         """根据传递的请求创建自定义API工具"""
 
         # 检验并提取openapi_schema对应的数据
-        print("req.openapi_schema", req.openapi_schema.data)
         openapi_schema = self.parse_openapi_schema(req.openapi_schema.data)
 
         # 查询当前用户是否已经存在同名的工具提供者，如果是则抛出异常

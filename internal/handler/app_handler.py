@@ -8,18 +8,18 @@ from internal.schema.app_schema import (
     GetPublishHistoriesWithPageResp,
     FallbackHistoryToDraftReq,
     UpdateDebugConversationSummaryReq,
+    DebugChatReq,
 )
 from pkg.paginator import PageModel
 from pkg.response import (
     success_json,
     success_message,
     validate_error_json,
+    compact_generate_response,
 )
 from flask import request
 from flask_login import login_required, current_user
-from internal.service import (
-    AppService,
-)
+from internal.service import AppService, RetrievalService
 
 
 @inject
@@ -28,6 +28,7 @@ class AppHandler:
     """应用控制器"""
 
     app_service: AppService
+    retrieval_service: RetrievalService
 
     @login_required
     def create_app(self):
@@ -42,10 +43,6 @@ class AppHandler:
 
         # 3.返回创建成功响应提示
         return success_json({"id": app.id})
-
-    @login_required
-    def ping(self):
-        pass
 
     @login_required
     def get_app(self, app_id: uuid.UUID):
@@ -144,3 +141,20 @@ class AppHandler:
         """根据传递的应用id，清空该应用的调试会话记录"""
         self.app_service.delete_debug_conversation(app_id, current_user)
         return success_message("清空应用调试会话记录成功")
+
+    @login_required
+    def debug_chat(self, app_id: uuid.UUID):
+        """根据传递的应用id+query，发起调试对话"""
+        # 1.提取数据并校验数据
+        req = DebugChatReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务发起会话调试
+        response = self.app_service.debug_chat(app_id, req.query.data, current_user)
+
+        return compact_generate_response(response)
+
+    @login_required
+    def ping(self):
+        pass

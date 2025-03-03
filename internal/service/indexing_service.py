@@ -409,9 +409,9 @@ class IndexingService(BaseService):
             for i in range(0, len(lc_segments), 10):
                 # 提取需要存储的数据和ids
                 chunks = lc_segments[i : i + 10]
-                for chunk in chunks:
-                    print(chunk)
-                    print(f"Chunk metadata: {chunk.metadata}")
+                # for chunk in chunks:
+                #     print(chunk)
+                #     print(f"Chunk metadata: {chunk.metadata}")
                 ids = [chunk.metadata["node_id"] for chunk in chunks]
                 futures.append(
                     executor.submit(

@@ -1,7 +1,8 @@
 from datetime import datetime
 import hashlib
 import importlib
-from typing import Any
+from typing import Any, List
+from langchain_core.documents import Document
 
 
 def dynamic_import(module_name: str, symbol_name: str) -> Any:
@@ -32,3 +33,8 @@ def datetime_to_timestamp(dt: datetime) -> int:
     if dt is None:
         return 0
     return int(dt.timestamp())
+
+
+def combine_documents(documents: list[Document]) -> str:
+    """将对应的文档列表使用换行符进行合并"""
+    return "\n\n".join([document.page_content for document in documents])

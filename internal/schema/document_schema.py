@@ -50,11 +50,8 @@ class CreateDocumentReq(FlaskForm):
         """校验处理规则"""
         # 校验处理模式，如果为自动，则为rule赋值默认值
         if self.process_type.data == ProcessType.AUTOMATIC:
-            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
             field.data = DEFAULT_PROCESS_RULE["rule"]
-            print(field.data)
         else:
-            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
             # 检测自定义规则是否为空
             if not isinstance(field.data, dict) or len(field.data) == 0:
                 raise ValidationError("自定义处理规则格式必须是字典")
